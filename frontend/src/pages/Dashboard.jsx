@@ -14,6 +14,7 @@ import MainLayout from "../layouts/MainLayout";
 import SummaryCard from "../components/dashboard/SummaryCard";
 import TransactionList from "../components/dashboard/TransactionList";
 import apiClient from "../api/apiClient";
+import { useCategories } from "../hooks/useCategories";
 
 ChartJS.register(
   CategoryScale,
@@ -32,6 +33,7 @@ const getInitialFormData = () => ({
 });
 
 export default function Dashboard() {
+  const { incomeCategories, expenseCategories } = useCategories();
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -301,8 +303,7 @@ export default function Dashboard() {
                 >
                   Category
                 </label>
-                <input
-                  type="text"
+                <select
                   name="category"
                   value={formData.category}
                   onChange={handleModalChange}
@@ -315,7 +316,16 @@ export default function Dashboard() {
                     fontSize: "14px",
                     boxSizing: "border-box",
                   }}
-                />
+                >
+                  <option value="">Select a category</option>
+                  {(transactionType === "income" ? incomeCategories : expenseCategories).map(
+                    (cat) => (
+                      <option key={cat._id} value={cat.name}>
+                        {cat.name}
+                      </option>
+                    )
+                  )}
+                </select>
               </div>
               <div style={{ marginBottom: "16px" }}>
                 <label

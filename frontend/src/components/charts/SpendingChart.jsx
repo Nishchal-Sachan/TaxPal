@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import {
   Cell,
   Legend,
@@ -7,51 +7,28 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
-import apiClient from "../../api/apiClient";
 
 const COLORS = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#8b5cf6"];
 
-export default function SpendingChart({ month }) {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
-
+export default function SpendingChart({ progress = [], month, loading = false }) {
   const selectedMonth = month || new Date().toISOString().slice(0, 7);
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-
-      const res = await apiClient.get(
-        `/budgets/progress?month=${selectedMonth}`,
-      );
-
-      const progress = res.data.data || [];
-
-      // Only include categories with spent > 0
-      const chartData = progress
+  const data = useMemo(
+    () =>
+      (progress || [])
         .filter((item) => item.spent > 0)
         .map((item) => ({
           name: item.category,
           value: item.spent,
-        }));
-
-      setData(chartData);
-    } catch (err) {
-      console.error("Chart fetch failed:", err.response?.data?.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, [selectedMonth]);
+        })),
+    [progress]
+  );
 
   if (loading) {
     return <div style={{ padding: "20px" }}>Loading chart...</div>;
   }
 
-  if (data.length === 0) {
+  if (!data || data.length === 0) {
     return (
       <div style={{ padding: "20px", textAlign: "center" }}>
         No spending data available.

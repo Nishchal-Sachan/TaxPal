@@ -13,12 +13,13 @@ export default function Budgets() {
   const [loading, setLoading] = useState(true);
   const [editingBudget, setEditingBudget] = useState(null);
 
-  const fetchProgress = async () => {
+  const fetchProgress = async (month) => {
+    const m = month ?? selectedMonth;
     try {
       setLoading(true);
 
       const res = await apiClient.get(
-        `/budgets/progress?month=${selectedMonth}`,
+        `/budgets/progress?month=${m}`,
       );
 
       const progress = res.data.data || [];
@@ -64,7 +65,7 @@ export default function Budgets() {
       </div>
 
       {/* Chart */}
-      <SpendingChart progress={progressData} month={selectedMonth} />
+      <SpendingChart progress={progressData} month={selectedMonth} loading={loading} />
 
       {/* Form */}
       <BudgetForm
@@ -72,9 +73,11 @@ export default function Budgets() {
         clearEdit={() => setEditingBudget(null)}
         onBudgetAdded={(month) => {
           setSelectedMonth(month);
+          fetchProgress(month);
         }}
         onBudgetUpdated={(month) => {
           setSelectedMonth(month);
+          fetchProgress(month);
         }}
       />
 

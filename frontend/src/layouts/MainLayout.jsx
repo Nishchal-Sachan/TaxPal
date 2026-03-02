@@ -10,6 +10,7 @@ const MainLayout = ({ children }) => {
     { path: "/budgets", label: "Budgets" },
     { path: "/dashboard", label: "Tax Estimator" },
     { path: "/dashboard", label: "Reports" },
+    { path: "/categories", label: "Categories" },
   ];
 
   const username = user?.name || user?.email || "User";

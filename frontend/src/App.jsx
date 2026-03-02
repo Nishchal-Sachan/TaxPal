@@ -1,12 +1,13 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Dashboard from "./pages/Dashboard";
-import Transactions from "./pages/Transactions";
-import { getToken } from "./utils/auth";
 import MainLayout from "./layouts/MainLayout";
 import Budgets from "./pages/Budgets";
+import Dashboard from "./pages/Dashboard";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Transactions from "./pages/Transactions";
+import { getToken } from "./utils/auth";
+import Categories from "./pages/Categories";
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
   const token = getToken();
@@ -42,7 +43,20 @@ function App() {
           path="/budgets"
           element={
             <ProtectedRoute>
-              <MainLayout><Budgets /></MainLayout>
+              <MainLayout>
+                <Budgets />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/categories"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <Categories />
+              </MainLayout>
             </ProtectedRoute>
           }
         />

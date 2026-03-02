@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import apiClient from "../../api/apiClient";
-
-const CATEGORIES = ["Food", "Rent", "Utilities", "Travel", "Marketing"];
+import { useCategories } from "../../hooks/useCategories";
 
 export default function BudgetForm({
   onBudgetAdded,
@@ -9,6 +8,7 @@ export default function BudgetForm({
   editData,
   clearEdit,
 }) {
+  const { expenseCategories } = useCategories();
   const [formData, setFormData] = useState({
     category: "",
     limit: "",
@@ -86,9 +86,15 @@ export default function BudgetForm({
               required
             >
               <option value="">Select a category</option>
-              {CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
+              {[
+                ...expenseCategories,
+                ...(formData.category &&
+                !expenseCategories.some((c) => c.name === formData.category)
+                  ? [{ _id: "legacy", name: formData.category }]
+                  : []),
+              ].map((cat) => (
+                <option key={cat._id} value={cat.name}>
+                  {cat.name}
                 </option>
               ))}
             </select>

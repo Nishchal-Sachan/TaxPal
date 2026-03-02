@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import apiClient from "../../api/apiClient";
+import { useCategories } from "../../hooks/useCategories";
 
 const TransactionList = ({ refreshTrigger, onTransactionChange, hideTitle }) => {
+  const { incomeCategories, expenseCategories } = useCategories();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -128,15 +130,30 @@ const TransactionList = ({ refreshTrigger, onTransactionChange, hideTitle }) => 
                     required
                     className="w-24 px-2 py-1 border rounded"
                   />
-                  <input
-                    type="text"
+                  <select
                     value={editForm.category}
                     onChange={(e) =>
                       setEditForm({ ...editForm, category: e.target.value })
                     }
                     required
                     className="w-32 px-2 py-1 border rounded"
-                  />
+                  >
+                    <option value="">Select</option>
+                    {(() => {
+                      const type = transactions.find((t) => t._id === editingId)?.type;
+                      const options = type === "income" ? incomeCategories : expenseCategories;
+                      const names = new Set(options.map((c) => c.name));
+                      const list = [...options];
+                      if (editForm.category && !names.has(editForm.category)) {
+                        list.push({ _id: "legacy", name: editForm.category });
+                      }
+                      return list.map((cat) => (
+                        <option key={cat._id} value={cat.name}>
+                          {cat.name}
+                        </option>
+                      ));
+                    })()}
+                  </select>
                   <input
                     type="date"
                     value={editForm.date}

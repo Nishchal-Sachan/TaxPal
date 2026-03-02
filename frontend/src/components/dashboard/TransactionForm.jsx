@@ -1,7 +1,9 @@
 import { useState } from "react";
 import apiClient from "../../api/apiClient";
+import { useCategories } from "../../hooks/useCategories";
 
 const TransactionForm = ({ onSuccess }) => {
+  const { incomeCategories, expenseCategories } = useCategories();
   const [formData, setFormData] = useState({
     type: "income",
     amount: "",
@@ -12,9 +14,11 @@ const TransactionForm = ({ onSuccess }) => {
   const [error, setError] = useState("");
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
+    const { name, value } = e.target;
+    setFormData((prev) => {
+      const next = { ...prev, [name]: value };
+      if (name === "type") next.category = "";
+      return next;
     });
   };
 
@@ -97,15 +101,22 @@ const TransactionForm = ({ onSuccess }) => {
             <label className="block text-sm font-medium text-slate-700 mb-1">
               Category
             </label>
-            <input
-              type="text"
+            <select
               name="category"
               value={formData.category}
               onChange={handleChange}
               required
-              placeholder="e.g. Salary, Food"
               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
+            >
+              <option value="">Select a category</option>
+              {(formData.type === "income" ? incomeCategories : expenseCategories).map(
+                (cat) => (
+                  <option key={cat._id} value={cat.name}>
+                    {cat.name}
+                  </option>
+                )
+              )}
+            </select>
           </div>
 
           <div>
