@@ -4,8 +4,8 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Transactions from "./pages/Transactions";
+import TaxEstimator from "./pages/TaxEstimator";
 import { getToken } from "./utils/auth";
-
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
   const token = getToken();
@@ -38,6 +38,11 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/tax-estimator" 
+        element={
+        <ProtectedRoute>
+          <TaxEstimator />
+          </ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </div>
