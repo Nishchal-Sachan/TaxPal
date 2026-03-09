@@ -6,6 +6,7 @@ const dashboardRoutes = require("./routes/dashboard.routes");
 const transactionRoutes = require("./routes/transaction.routes");
 const budgetRoutes = require("./routes/budget.routes");
 const categoryRoutes = require("./routes/category.routes");
+const taxRoutes = require("./routes/taxCalendar.routes"); // added
 
 const app = express();
 
@@ -18,6 +19,7 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/transactions", transactionRoutes);
 app.use("/api/budgets", budgetRoutes);
 app.use("/api/categories", categoryRoutes);
+app.use("/tax", taxRoutes); // added
 
 // 404 handler
 app.use((req, res, next) => {
