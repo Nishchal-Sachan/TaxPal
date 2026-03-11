@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import apiClient from "../api/apiClient";
 import BudgetForm from "../components/budget/BudgetForm";
 import BudgetList from "../components/budget/BudgetList";
@@ -13,7 +13,7 @@ export default function Budgets() {
   const [loading, setLoading] = useState(true);
   const [editingBudget, setEditingBudget] = useState(null);
 
-  const fetchProgress = async (month) => {
+  const fetchProgress = useCallback(async (month) => {
     const m = month ?? selectedMonth;
     try {
       setLoading(true);
@@ -30,11 +30,11 @@ export default function Budgets() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedMonth]);
 
   useEffect(() => {
     fetchProgress();
-  }, [selectedMonth]);
+  }, [fetchProgress]);
 
   // 🔥 Delete Handler
   const handleDelete = async (id) => {
@@ -43,7 +43,7 @@ export default function Budgets() {
     try {
       await apiClient.delete(`/budgets/${id}`);
       fetchProgress();
-    } catch (err) {
+    } catch {
       alert("Delete failed");
     }
   };

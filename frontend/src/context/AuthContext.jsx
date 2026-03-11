@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import apiClient from "../api/apiClient";
-import { setToken, getToken, removeToken, isAuthenticated } from "../utils/auth";
+import { setToken, getToken, removeToken } from "../utils/auth";
 
 const AuthContext = createContext();
 
@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
     if (token) {
       // We don’t decode token here for simplicity
       // You can add a /me endpoint later if needed
-      setUser({ authenticated: true });
+      setUser({ authenticated: true }); // eslint-disable-line react-hooks/set-state-in-effect -- initial auth from token
     }
 
     setLoading(false);
@@ -84,6 +84,7 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components -- useAuth is a hook, not a component
 export const useAuth = () => {
   return useContext(AuthContext);
 };

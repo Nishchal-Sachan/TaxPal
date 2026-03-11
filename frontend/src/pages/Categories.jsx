@@ -13,7 +13,7 @@ export default function Categories() {
       setLoading(true);
       const res = await apiClient.get("/categories");
       setCategories(res.data.data || []);
-    } catch (err) {
+    } catch {
       console.error("Fetch failed");
       setCategories([]);
     } finally {
@@ -31,7 +31,7 @@ export default function Categories() {
     try {
       await apiClient.delete(`/categories/${id}`);
       fetchCategories();
-    } catch (err) {
+    } catch {
       alert("Delete failed");
     }
   };

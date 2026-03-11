@@ -6,6 +6,7 @@ import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Transactions from "./pages/Transactions";
+import TaxEstimator from "./pages/TaxEstimator";
 import { getToken } from "./utils/auth";
 import Categories from "./pages/Categories";
 const ProtectedRoute = ({ children }) => {
@@ -60,6 +61,11 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/tax-estimator" 
+        element={
+        <ProtectedRoute>
+          <TaxEstimator />
+          </ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </div>
