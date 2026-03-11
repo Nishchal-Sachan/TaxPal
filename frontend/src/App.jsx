@@ -4,6 +4,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Transactions from "./pages/Transactions";
+import TaxCalendar from "./pages/TaxCalendar";
 import { getToken } from "./utils/auth";
 
 const ProtectedRoute = ({ children }) => {
@@ -35,6 +36,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Transactions />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tax-calendar"
+          element={
+            <ProtectedRoute>
+              <TaxCalendar />
             </ProtectedRoute>
           }
         />

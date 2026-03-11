@@ -7,6 +7,7 @@ const MainLayout = ({ children }) => {
   const menuItems = [
     { path: "/dashboard", label: "Dashboard" },
     { path: "/transactions", label: "Transactions" },
+    { path: "/tax-calendar", label: "Tax Calendar" },
     { path: "/dashboard", label: "Budgets" },
     { path: "/dashboard", label: "Tax Estimator" },
     { path: "/dashboard", label: "Reports" },
