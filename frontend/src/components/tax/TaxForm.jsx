@@ -1,9 +1,9 @@
-
 import React from "react";
 
 export default function TaxForm({ formData, setFormData }) {
+
   const handleChange = (e) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [e.target.name]: e.target.value
     }));
@@ -11,140 +11,128 @@ export default function TaxForm({ formData, setFormData }) {
 
   return (
     <div className="bg-white p-6 rounded-xl shadow-md">
-      <h2 className="text-lg font-semibold mb-4">Quarterly Tax Calculator</h2>
 
-      {/* TOP GRID - 5 fields */}
+      <h2 className="text-lg font-semibold mb-4">
+        Tax Calculator
+      </h2>
+
+      {/* BASIC INFO */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Country/Region */}
+
+        {/* Country */}
         <div>
-          <label className="text-sm font-medium mb-1 block">Country / Region</label>
+          <label className="text-sm font-medium mb-1 block">
+            Country
+          </label>
           <select
-            name="region"
-            value={formData.region}
+            name="country"
+            value={formData.country}
             onChange={handleChange}
             className="w-full border px-3 py-2 rounded-md"
           >
-            <option>India</option>
-            <option>United States</option>
-            <option>United Kingdom</option>
-            <option>Australia</option>
+            <option value="India">India</option>
+            <option value="United States">United States</option>
+            <option value="United Kingdom">United Kingdom</option>
+            <option value="Australia">Australia</option>
           </select>
         </div>
 
-        {/* State/Province */}
+        {/* Year */}
         <div>
-          <label className="text-sm font-medium mb-1 block">State / Province</label>
+          <label className="text-sm font-medium mb-1 block">
+            Tax Year
+          </label>
           <input
-            type="text"
-            name="stateProvince"
-            value={formData.stateProvince}
+            type="number"
+            name="year"
+            value={formData.year}
             onChange={handleChange}
-            placeholder="Enter state"
             className="w-full border px-3 py-2 rounded-md"
           />
         </div>
 
-        {/* Filing Status */}
-        <div>
-          <label className="text-sm font-medium mb-1 block">Filing Status</label>
-          <select
-            name="status"
-            value={formData.status}
-            onChange={handleChange}
-            className="w-full border px-3 py-2 rounded-md"
-          >
-            <option>Single</option>
-            <option>Married</option>
-            <option>Business</option>
-          </select>
-        </div>
-
-        {/* Quarter */}
-        <div>
-          <label className="text-sm font-medium mb-1 block">Quarter</label>
-          <select
-            name="quarter"
-            value={formData.quarter}
-            onChange={handleChange}
-            className="w-full border px-3 py-2 rounded-md"
-          >
-            <option>Q1</option>
-            <option>Q2</option>
-            <option>Q3</option>
-            <option>Q4</option>
-          </select>
-        </div>
-
-        {/* Gross Income */}
-        <div>
-          <label className="text-sm font-medium mb-1 block">Gross Income for Quarter</label>
+        {/* Income */}
+        <div className="md:col-span-2">
+          <label className="text-sm font-medium mb-1 block">
+            Annual Income
+          </label>
           <input
             type="number"
             name="income"
             value={formData.income}
             onChange={handleChange}
-            placeholder="Enter income"
+            placeholder="Enter your annual income"
             className="w-full border px-3 py-2 rounded-md"
             min="0"
           />
         </div>
       </div>
 
-      {/* DEDUCTIONS SECTION */}
-      <h3 className="font-semibold mt-6 mb-3">Deductions</h3>
+      {/* DEDUCTIONS */}
+      <h3 className="font-semibold mt-6 mb-3">
+        Deductions
+      </h3>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
         <div>
-          <label className="text-sm font-medium mb-1 block">Business Expenses</label>
+          <label className="text-sm font-medium mb-1 block">
+            Business Expenses
+          </label>
           <input
             type="number"
             name="businessExpenses"
             value={formData.businessExpenses}
             onChange={handleChange}
-            placeholder="Business Expenses"
             className="w-full border px-3 py-2 rounded-md"
             min="0"
           />
         </div>
 
         <div>
-          <label className="text-sm font-medium mb-1 block">Retirement Contributions</label>
+          <label className="text-sm font-medium mb-1 block">
+            Retirement Contributions
+          </label>
           <input
             type="number"
             name="retirement"
             value={formData.retirement}
             onChange={handleChange}
-            placeholder="Retirement Contributions"
             className="w-full border px-3 py-2 rounded-md"
             min="0"
           />
         </div>
 
         <div>
-          <label className="text-sm font-medium mb-1 block">Health Insurance Premiums</label>
+          <label className="text-sm font-medium mb-1 block">
+            Health Insurance
+          </label>
           <input
             type="number"
             name="insurance"
             value={formData.insurance}
             onChange={handleChange}
-            placeholder="Health Insurance Premiums"
             className="w-full border px-3 py-2 rounded-md"
             min="0"
           />
         </div>
 
         <div>
-          <label className="text-sm font-medium mb-1 block">Home Office Deduction</label>
+          <label className="text-sm font-medium mb-1 block">
+            Home Office Deduction
+          </label>
           <input
             type="number"
             name="homeOffice"
             value={formData.homeOffice}
             onChange={handleChange}
-            placeholder="Home Office Deduction"
             className="w-full border px-3 py-2 rounded-md"
             min="0"
           />
         </div>
+
       </div>
+
     </div>
   );
 }
