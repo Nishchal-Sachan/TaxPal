@@ -2,13 +2,14 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import MainLayout from "./layouts/MainLayout";
 import Budgets from "./pages/Budgets";
+import Categories from "./pages/Categories";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Transactions from "./pages/Transactions";
+import TaxCalendar from "./pages/TaxCalendar";
 import TaxEstimator from "./pages/TaxEstimator";
+import Transactions from "./pages/Transactions";
 import { getToken } from "./utils/auth";
-import Categories from "./pages/Categories";
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
   const token = getToken();
@@ -61,11 +62,24 @@ function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="/tax-estimator" 
-        element={
-        <ProtectedRoute>
-          <TaxEstimator />
-          </ProtectedRoute>} />
+        <Route
+          path="/tax-estimator"
+          element={
+            <ProtectedRoute>
+              <TaxEstimator />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/tax-calendar"
+          element={
+            <ProtectedRoute>
+              <TaxCalendar />
+            </ProtectedRoute>
+          }
+        />
+
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </div>

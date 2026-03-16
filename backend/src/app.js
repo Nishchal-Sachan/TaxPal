@@ -6,7 +6,6 @@ const dashboardRoutes = require("./routes/dashboard.routes");
 const transactionRoutes = require("./routes/transaction.routes");
 const budgetRoutes = require("./routes/budget.routes");
 const categoryRoutes = require("./routes/category.routes");
-const taxCalendarRoutes = require("./routes/taxCalendar.routes");
 const taxRoutes = require("./routes/tax.routes");
 
 const app = express();
@@ -20,7 +19,6 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/transactions", transactionRoutes);
 app.use("/api/budgets", budgetRoutes);
 app.use("/api/categories", categoryRoutes);
-app.use("/tax", taxCalendarRoutes);
 app.use("/api/tax", taxRoutes);
 
 // 404 handler

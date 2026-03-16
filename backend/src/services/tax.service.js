@@ -1,5 +1,10 @@
-const { TAX_SLABS_INDIA } = require("../utils/constants");
+const TaxEstimate = require("../models/taxEstimate.model");
+const { TAX_SLABS } = require("../utils/constants");
 
+/**
+ * Estimate Tax
+ * Used by POST /tax/estimate
+ */
 exports.estimateTax = async (userId, data) => {
 
   const {
@@ -9,7 +14,8 @@ exports.estimateTax = async (userId, data) => {
     businessExpenses = 0,
     retirement = 0,
     insurance = 0,
-    homeOffice = 0
+    homeOffice = 0,
+    status = "Single"
   } = data;
 
   if (!country || !year) {
@@ -17,6 +23,17 @@ exports.estimateTax = async (userId, data) => {
     error.statusCode = 400;
     throw error;
   }
+
+  const slabs = TAX_SLABS[country];
+
+  if (!slabs) {
+    const error = new Error("Unsupported country for tax calculation");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const validStatuses = ["Single", "Married", "Business"];
+  const filingStatus = validStatuses.includes(status) ? status : "Single";
 
   const totalIncome = Number(income);
 
@@ -26,12 +43,17 @@ exports.estimateTax = async (userId, data) => {
     Number(insurance) +
     Number(homeOffice);
 
-  const taxableIncome = Math.max(totalIncome - deductions, 0);
+  let taxableIncome = Math.max(totalIncome - deductions, 0);
+
+  // Filing status: Married → 10% deduction from taxable income
+  if (filingStatus === "Married") {
+    taxableIncome = Math.max(taxableIncome * 0.9, 0);
+  }
 
   let tax = 0;
   let prevLimit = 0;
 
-  for (const slab of TAX_SLABS_INDIA) {
+  for (const slab of slabs) {
 
     if (taxableIncome <= prevLimit) break;
 
@@ -41,6 +63,11 @@ exports.estimateTax = async (userId, data) => {
     tax += taxableAmount * slab.rate;
 
     prevLimit = slab.limit;
+  }
+
+  // Filing status: Business → additional 5% tax on final tax
+  if (filingStatus === "Business") {
+    tax = tax * 1.05;
   }
 
   const yearlyTax = Math.round(tax);
@@ -59,6 +86,8 @@ exports.estimateTax = async (userId, data) => {
       : 0;
 
   return {
+    country,
+    year,
     yearlyTax,
     quarterlyTax,
     quarters,
@@ -67,4 +96,70 @@ exports.estimateTax = async (userId, data) => {
     taxableIncome,
     deductions
   };
+};
+
+
+/**
+ * Save Quarterly Tax Estimate
+ * Used by POST /tax/save
+ * Updates existing entry if user+quarter already exists (no duplicates)
+ */
+exports.saveTaxEstimate = async (userId, quarter, amount) => {
+
+  if (!quarter || !amount) {
+    const error = new Error("Quarter and amount are required");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const validQuarters = ["Q1", "Q2", "Q3", "Q4"];
+  if (!validQuarters.includes(quarter)) {
+    const error = new Error("Invalid quarter. Must be Q1, Q2, Q3, or Q4");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const estimate = await TaxEstimate.findOneAndUpdate(
+    { user: userId, quarter },
+    { user: userId, quarter, amount },
+    { new: true, upsert: true, runValidators: true }
+  );
+
+  return estimate;
+};
+
+
+/**
+ * Get Tax Calendar
+ * Used by GET /tax/calendar
+ * Q1→Jun 15, Q2→Sep 15, Q3→Dec 15, Q4→Mar 15 (next year)
+ */
+exports.getTaxCalendar = async (userId) => {
+
+  const year = new Date().getFullYear();
+  const nextYear = year + 1;
+
+  const dueDates = {
+    Q1: { date: `${year}-06-15`, title: "Q1 Estimated Payment" },
+    Q2: { date: `${year}-09-15`, title: "Q2 Estimated Payment" },
+    Q3: { date: `${year}-12-15`, title: "Q3 Estimated Payment" },
+    Q4: { date: `${nextYear}-03-15`, title: "Q4 Estimated Payment" }
+  };
+
+  const estimates = await TaxEstimate.find({
+    user: userId
+  }).sort({ quarter: 1 });
+
+  const calendar = estimates.map((item) => {
+    const dueInfo = dueDates[item.quarter];
+    return {
+      quarter: item.quarter,
+      title: dueInfo.title,
+      description: "Estimated quarterly tax payment",
+      dueDate: dueInfo.date,
+      amount: item.amount
+    };
+  });
+
+  return calendar;
 };

@@ -51,8 +51,25 @@ export default function TaxForm({ formData, setFormData }) {
           />
         </div>
 
+        {/* Filing Status */}
+        <div>
+          <label className="text-sm font-medium mb-1 block">
+            Filing Status
+          </label>
+          <select
+            name="status"
+            value={formData.status || "Single"}
+            onChange={handleChange}
+            className="w-full border px-3 py-2 rounded-md"
+          >
+            <option value="Single">Single</option>
+            <option value="Married">Married</option>
+            <option value="Business">Business</option>
+          </select>
+        </div>
+
         {/* Income */}
-        <div className="md:col-span-2">
+        <div>
           <label className="text-sm font-medium mb-1 block">
             Annual Income
           </label>

@@ -12,14 +12,17 @@ export default function TaxSummary({ result }) {
   }
 
   const yearlyTax = result.estimatedTax || 0;
-  const quarterlyTax = yearlyTax / 4;
+  const quarterlyTax = result.quarterlyTax ?? yearlyTax / 4;
 
-  const quarters = [
-    { label: "Q1", value: quarterlyTax },
-    { label: "Q2", value: quarterlyTax },
-    { label: "Q3", value: quarterlyTax },
-    { label: "Q4", value: quarterlyTax },
-  ];
+  const quarters =
+    result.quarters && Array.isArray(result.quarters)
+      ? result.quarters.map((q) => ({ label: q.quarter, value: q.tax }))
+      : [
+          { label: "Q1", value: quarterlyTax },
+          { label: "Q2", value: quarterlyTax },
+          { label: "Q3", value: quarterlyTax },
+          { label: "Q4", value: quarterlyTax }
+        ];
 
   return (
     <div className="space-y-6">
@@ -59,7 +62,7 @@ export default function TaxSummary({ result }) {
         <div className="bg-white border rounded-xl p-4 shadow">
           <p className="text-sm text-gray-500">Quarterly Tax</p>
           <p className="text-xl font-bold">
-            ₹{quarterlyTax.toLocaleString()}
+            ₹{Number(quarterlyTax).toLocaleString()}
           </p>
         </div>
 
