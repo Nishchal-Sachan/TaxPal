@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import CategoryBreakdown from "./CategoryBreakdown";
-
+import DownloadButton from "./DownloadButton";
 const formatCurrency = (value) => {
   if (typeof value !== "number" || Number.isNaN(value)) return "-";
   return `$${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
@@ -79,9 +79,23 @@ const ReportPreview = ({
                 Summary of income, expense, and category breakdown.
               </p>
             </div>
+            <div className="flex items-center gap-2">
+            <DownloadButton
+    type="pdf"
+    period={
+      report?.month
+        ? report.month
+        : report?.quarter && report?.year
+        ? `${report.quarter}-${report.year}`
+        : ""
+    }
+  />
+
+  
             <span className="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-600">
               Preview
             </span>
+          </div>
           </div>
         </div>
       )}
