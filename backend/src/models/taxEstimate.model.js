@@ -17,6 +17,11 @@ const taxEstimateSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
+    status: {
+      type: String,
+      enum: ["unpaid", "paid"],
+      default: "unpaid",
+    },
   },
   { timestamps: true }
 );

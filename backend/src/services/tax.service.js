@@ -6,7 +6,6 @@ const { TAX_SLABS } = require("../utils/constants");
  * Used by POST /tax/estimate
  */
 exports.estimateTax = async (userId, data) => {
-
   const {
     country,
     year,
@@ -15,7 +14,7 @@ exports.estimateTax = async (userId, data) => {
     retirement = 0,
     insurance = 0,
     homeOffice = 0,
-    status = "Single"
+    status = "Single",
   } = data;
 
   if (!country || !year) {
@@ -25,7 +24,6 @@ exports.estimateTax = async (userId, data) => {
   }
 
   const slabs = TAX_SLABS[country];
-
   if (!slabs) {
     const error = new Error("Unsupported country for tax calculation");
     error.statusCode = 400;
@@ -36,7 +34,6 @@ exports.estimateTax = async (userId, data) => {
   const filingStatus = validStatuses.includes(status) ? status : "Single";
 
   const totalIncome = Number(income);
-
   const deductions =
     Number(businessExpenses) +
     Number(retirement) +
@@ -45,7 +42,6 @@ exports.estimateTax = async (userId, data) => {
 
   let taxableIncome = Math.max(totalIncome - deductions, 0);
 
-  // Filing status: Married → 10% deduction from taxable income
   if (filingStatus === "Married") {
     taxableIncome = Math.max(taxableIncome * 0.9, 0);
   }
@@ -54,18 +50,12 @@ exports.estimateTax = async (userId, data) => {
   let prevLimit = 0;
 
   for (const slab of slabs) {
-
     if (taxableIncome <= prevLimit) break;
-
-    const taxableAmount =
-      Math.min(taxableIncome, slab.limit) - prevLimit;
-
+    const taxableAmount = Math.min(taxableIncome, slab.limit) - prevLimit;
     tax += taxableAmount * slab.rate;
-
     prevLimit = slab.limit;
   }
 
-  // Filing status: Business → additional 5% tax on final tax
   if (filingStatus === "Business") {
     tax = tax * 1.05;
   }
@@ -77,7 +67,7 @@ exports.estimateTax = async (userId, data) => {
     { quarter: "Q1", tax: quarterlyTax },
     { quarter: "Q2", tax: quarterlyTax },
     { quarter: "Q3", tax: quarterlyTax },
-    { quarter: "Q4", tax: quarterlyTax }
+    { quarter: "Q4", tax: quarterlyTax },
   ];
 
   const effectiveRate =
@@ -94,7 +84,7 @@ exports.estimateTax = async (userId, data) => {
     estimatedTax: yearlyTax,
     effectiveRate,
     taxableIncome,
-    deductions
+    deductions,
   };
 };
 
@@ -102,10 +92,8 @@ exports.estimateTax = async (userId, data) => {
 /**
  * Save Quarterly Tax Estimate
  * Used by POST /tax/save
- * Updates existing entry if user+quarter already exists (no duplicates)
  */
 exports.saveTaxEstimate = async (userId, quarter, amount) => {
-
   if (!quarter || !amount) {
     const error = new Error("Quarter and amount are required");
     error.statusCode = 400;
@@ -135,7 +123,6 @@ exports.saveTaxEstimate = async (userId, quarter, amount) => {
  * Q1→Jun 15, Q2→Sep 15, Q3→Dec 15, Q4→Mar 15 (next year)
  */
 exports.getTaxCalendar = async (userId) => {
-
   const year = new Date().getFullYear();
   const nextYear = year + 1;
 
@@ -143,23 +130,41 @@ exports.getTaxCalendar = async (userId) => {
     Q1: { date: `${year}-06-15`, title: "Q1 Estimated Payment" },
     Q2: { date: `${year}-09-15`, title: "Q2 Estimated Payment" },
     Q3: { date: `${year}-12-15`, title: "Q3 Estimated Payment" },
-    Q4: { date: `${nextYear}-03-15`, title: "Q4 Estimated Payment" }
+    Q4: { date: `${nextYear}-03-15`, title: "Q4 Estimated Payment" },
   };
 
-  const estimates = await TaxEstimate.find({
-    user: userId
-  }).sort({ quarter: 1 });
+  const estimates = await TaxEstimate.find({ user: userId }).sort({ quarter: 1 });
 
-  const calendar = estimates.map((item) => {
+  return estimates.map((item) => {
     const dueInfo = dueDates[item.quarter];
     return {
+      id: item._id.toString(),
       quarter: item.quarter,
       title: dueInfo.title,
       description: "Estimated quarterly tax payment",
       dueDate: dueInfo.date,
-      amount: item.amount
+      amount: item.amount,
+      status: item.status || "unpaid",
     };
   });
+};
 
-  return calendar;
+
+/**
+ * Toggle Tax Payment Status
+ * Used by PATCH /tax/calendar/:id/toggle
+ */
+exports.toggleTaxStatus = async (userId, estimateId) => {
+  const estimate = await TaxEstimate.findOne({ _id: estimateId, user: userId });
+
+  if (!estimate) {
+    const error = new Error("Tax estimate not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  estimate.status = estimate.status === "paid" ? "unpaid" : "paid";
+  await estimate.save();
+
+  return estimate;
 };

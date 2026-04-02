@@ -9,6 +9,7 @@ import Register from "./pages/Register";
 import TaxCalendar from "./pages/TaxCalendar";
 import TaxEstimator from "./pages/TaxEstimator";
 import Transactions from "./pages/Transactions";
+import Reports from "./pages/Reports";
 import { getToken } from "./utils/auth";
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -76,6 +77,15 @@ function App() {
           element={
             <ProtectedRoute>
               <TaxCalendar />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/reports"
+          element={
+            <ProtectedRoute>
+              <Reports />
             </ProtectedRoute>
           }
         />

@@ -10,7 +10,7 @@ const MainLayout = ({ children }) => {
     { path: "/budgets", label: "Budgets" },
     { path: "/tax-estimator", label: "Tax Estimator" },
     { path: "/tax-calendar", label: "Tax Calendar" },
-    { path: "/dashboard", label: "Reports" },
+    { path: "/reports", label: "Reports" },
     { path: "/categories", label: "Categories" },
   ];
 

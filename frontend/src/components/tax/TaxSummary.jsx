@@ -1,98 +1,127 @@
+import { Bar } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Tooltip,
+  Legend,
+} from "chart.js";
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
+
+const StatCard = ({ label, value, sub, color = "indigo" }) => {
+  const colors = {
+    indigo: "bg-indigo-50 text-indigo-700 border-indigo-100",
+    emerald: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    rose: "bg-rose-50 text-rose-700 border-rose-100",
+    violet: "bg-violet-50 text-violet-700 border-violet-100",
+  };
+  return (
+    <div className={`rounded-2xl border p-5 ${colors[color]}`}>
+      <p className="text-xs font-bold uppercase tracking-widest opacity-70 mb-1">{label}</p>
+      <p className="text-2xl font-extrabold">{value}</p>
+      {sub && <p className="text-xs mt-1 opacity-60">{sub}</p>}
+    </div>
+  );
+};
+
 export default function TaxSummary({ result }) {
   if (!result) {
     return (
-      <div className="bg-gray-100 p-8 rounded-xl text-center shadow">
-        <div className="text-4xl mb-4">📊</div>
-        <h3 className="text-lg font-semibold mb-2">Tax Summary</h3>
-        <p className="text-gray-600">
-          Enter your income to calculate estimated yearly and quarterly tax.
-        </p>
+      <div className="bg-gradient-to-br from-indigo-50 to-white border-2 border-dashed border-indigo-100 rounded-3xl p-16 flex flex-col items-center gap-6 text-center h-full">
+        <div className="text-6xl opacity-40">📊</div>
+        <div>
+          <h3 className="text-lg font-bold text-gray-700">Tax Summary</h3>
+          <p className="text-gray-400 text-sm max-w-xs mx-auto mt-2">
+            Fill in your income details on the left and click <strong>Calculate Tax</strong> to see your full breakdown here.
+          </p>
+        </div>
       </div>
     );
   }
 
-  const yearlyTax = result.estimatedTax || 0;
-  const quarterlyTax = result.quarterlyTax ?? yearlyTax / 4;
+  const yearlyTax = result.estimatedTax || result.yearlyTax || 0;
+  const quarterlyTax = result.quarterlyTax ?? Math.round(yearlyTax / 4);
 
   const quarters =
     result.quarters && Array.isArray(result.quarters)
       ? result.quarters.map((q) => ({ label: q.quarter, value: q.tax }))
-      : [
-          { label: "Q1", value: quarterlyTax },
-          { label: "Q2", value: quarterlyTax },
-          { label: "Q3", value: quarterlyTax },
-          { label: "Q4", value: quarterlyTax }
-        ];
+      : ["Q1", "Q2", "Q3", "Q4"].map((q) => ({ label: q, value: quarterlyTax }));
+
+  const barData = {
+    labels: quarters.map((q) => q.label),
+    datasets: [
+      {
+        label: "Quarterly Tax (₹)",
+        data: quarters.map((q) => q.value),
+        backgroundColor: ["#818cf8", "#60a5fa", "#34d399", "#f472b6"],
+        borderRadius: 10,
+        borderSkipped: false,
+      },
+    ],
+  };
+
+  const barOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (ctx) => `₹${ctx.parsed.y.toLocaleString()}`,
+        },
+      },
+    },
+    scales: {
+      y: { beginAtZero: true, grid: { color: "#f3f4f6" } },
+      x: { grid: { display: false } },
+    },
+  };
 
   return (
     <div className="space-y-6">
-
-      {/* YEARLY TAX CARD */}
-      <div className="bg-linear-to-br from-blue-500 to-indigo-600 text-white p-8 rounded-2xl shadow-2xl">
-        <h2 className="text-center text-lg opacity-90 mb-2">
-          Estimated Yearly Tax
-        </h2>
-
-        <p className="text-center text-5xl font-bold mb-4">
-          ₹{yearlyTax.toLocaleString()}
-        </p>
-
-        <p className="text-center text-blue-100">
-          Effective Rate: {result.effectiveRate || 0}%
+      {/* Hero card */}
+      <div className="bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-600 text-white p-8 rounded-3xl shadow-2xl shadow-indigo-200 relative overflow-hidden">
+        <div className="absolute -top-8 -right-8 w-36 h-36 rounded-full bg-white opacity-5" />
+        <div className="absolute -bottom-6 -left-6 w-28 h-28 rounded-full bg-white opacity-5" />
+        <p className="text-indigo-200 text-sm font-bold uppercase tracking-widest mb-2">Estimated Yearly Tax</p>
+        <p className="text-6xl font-extrabold tracking-tight">₹{yearlyTax.toLocaleString()}</p>
+        <p className="text-indigo-200 mt-3 text-sm">
+          Effective Rate: <strong className="text-white">{result.effectiveRate || 0}%</strong>
+          &nbsp;·&nbsp; Country: <strong className="text-white">{result.country}</strong>
+          &nbsp;·&nbsp; Year: <strong className="text-white">{result.year}</strong>
         </p>
       </div>
 
-      {/* TAX BREAKDOWN CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-
-        <div className="bg-white border rounded-xl p-4 shadow">
-          <p className="text-sm text-gray-500">Taxable Income</p>
-          <p className="text-xl font-bold">
-            ₹{result.taxableIncome?.toLocaleString() || 0}
-          </p>
-        </div>
-
-        <div className="bg-white border rounded-xl p-4 shadow">
-          <p className="text-sm text-gray-500">Total Deductions</p>
-          <p className="text-xl font-bold">
-            ₹{result.deductions?.toLocaleString() || 0}
-          </p>
-        </div>
-
-        <div className="bg-white border rounded-xl p-4 shadow">
-          <p className="text-sm text-gray-500">Quarterly Tax</p>
-          <p className="text-xl font-bold">
-            ₹{Number(quarterlyTax).toLocaleString()}
-          </p>
-        </div>
-
+      {/* Stat grid */}
+      <div className="grid grid-cols-2 gap-4">
+        <StatCard label="Taxable Income" value={`₹${(result.taxableIncome || 0).toLocaleString()}`} color="indigo" />
+        <StatCard label="Total Deductions" value={`₹${(result.deductions || 0).toLocaleString()}`} color="violet" />
+        <StatCard label="Quarterly Tax" value={`₹${quarterlyTax.toLocaleString()}`} sub="Due each quarter" color="emerald" />
+        <StatCard label="Monthly Equivalent" value={`₹${Math.round(yearlyTax / 12).toLocaleString()}`} sub="For planning purposes" color="rose" />
       </div>
 
-      {/* QUARTERLY BREAKDOWN */}
-      <div className="bg-white border rounded-xl p-6 shadow">
+      {/* Bar chart */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <h3 className="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wider">Quarterly Breakdown</h3>
+        <div style={{ height: "180px" }}>
+          <Bar data={barData} options={barOptions} />
+        </div>
+      </div>
 
-        <h3 className="text-lg font-semibold mb-4">
-          Quarterly Tax Breakdown
-        </h3>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-
-          {quarters.map((q) => (
-            <div
-              key={q.label}
-              className="border rounded-lg p-4 text-center hover:shadow-md transition"
-            >
-              <p className="text-gray-500 text-sm">{q.label}</p>
-              <p className="text-xl font-bold text-blue-600">
-                ₹{q.value.toLocaleString()}
-              </p>
+      {/* Quarterly cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {quarters.map((q, i) => {
+          const colors = ["bg-indigo-500", "bg-sky-500", "bg-emerald-500", "bg-pink-500"];
+          return (
+            <div key={q.label} className={`${colors[i]} text-white rounded-2xl p-4 text-center shadow-md`}>
+              <p className="text-xs font-bold opacity-80 uppercase tracking-wider">{q.label}</p>
+              <p className="text-xl font-extrabold mt-1">₹{q.value.toLocaleString()}</p>
             </div>
-          ))}
-
-        </div>
-
+          );
+        })}
       </div>
-
     </div>
   );
 }
