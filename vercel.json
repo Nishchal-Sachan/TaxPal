@@ -2,8 +2,7 @@
     "services": {
         "frontend": {
             "root": "frontend",
-            "framework": "vite",
-            "outputDirectory": "dist"
+            "framework": "vite"
         },
         "backend": {
             "root": "backend",
@@ -14,17 +13,26 @@
         {
             "source": "/api(/.*)?",
             "destination": {
-                "type": "service",
                 "service": "backend"
             }
         },
         {
-            "handle": "filesystem"
+            "source": "/assets/(.*)",
+            "destination": {
+                "service": "frontend",
+                "path": "/assets/$1"
+            }
+        },
+        {
+            "source": "/(.*\\.(?:js|css|ico|png|jpg|jpeg|svg|json|woff2?|ttf|map))",
+            "destination": {
+                "service": "frontend",
+                "path": "/$1"
+            }
         },
         {
             "source": "/(.*)",
             "destination": {
-                "type": "service",
                 "service": "frontend",
                 "path": "/index.html"
             }
