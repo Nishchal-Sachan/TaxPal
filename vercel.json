@@ -2,7 +2,8 @@
     "services": {
         "frontend": {
             "root": "frontend",
-            "framework": "vite"
+            "framework": "vite",
+            "outputDirectory": "dist"
         },
         "backend": {
             "root": "backend",
@@ -18,10 +19,14 @@
             }
         },
         {
+            "handle": "filesystem"
+        },
+        {
             "source": "/(.*)",
             "destination": {
                 "type": "service",
-                "service": "frontend"
+                "service": "frontend",
+                "path": "/index.html"
             }
         }
     ]
