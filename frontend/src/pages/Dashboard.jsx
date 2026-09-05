@@ -141,7 +141,7 @@ export default function Dashboard() {
       labels: Object.keys(byCategory),
       data: Object.values(byCategory),
     };
-  }, [summary?.transactions]);
+  }, [summary?.last5Transactions]);
 
   const pieChartData = useMemo(
     () => ({
