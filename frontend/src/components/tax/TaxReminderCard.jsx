@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import apiClient from "../../api/apiClient";
+import { useCurrency } from "../../hooks/useCurrency";
 
 const QUARTER_COLORS = {
   Q1: { bg: "bg-violet-50", accent: "bg-violet-500", text: "text-violet-700", border: "border-violet-200", badge: "bg-violet-100 text-violet-700" },
@@ -28,6 +28,7 @@ const getDaysUntil = (dateStr) => {
 };
 
 const TaxReminderCard = ({ reminder, onToggle }) => {
+  const { format } = useCurrency();
   const [toggling, setToggling] = useState(false);
   if (!reminder) return null;
 
@@ -88,7 +89,7 @@ const TaxReminderCard = ({ reminder, onToggle }) => {
           <div className="text-right shrink-0">
             <p className="text-xs text-gray-400 uppercase tracking-wide">Amount</p>
             <p className={`text-2xl font-extrabold ${isPaid ? "text-emerald-600" : c.text}`}>
-              ₹{Number(reminder.amount).toLocaleString()}
+              {format(Number(reminder.amount))}
             </p>
           </div>
         </div>

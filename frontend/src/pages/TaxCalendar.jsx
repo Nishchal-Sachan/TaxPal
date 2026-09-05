@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
-import MainLayout from "../layouts/MainLayout";
 import apiClient from "../api/apiClient";
+import { useAuth } from "../context/AuthContext";
+import { useCurrency } from "../hooks/useCurrency";
 import TaxReminderCard from "../components/tax/TaxReminderCard";
+import TaxDisclaimer from "../components/tax/TaxDisclaimer";
+import PageHeader from "../components/ui/PageHeader";
 
 const QUARTER_MONTHS = {
   Q1: "Jan – Mar",
@@ -11,6 +14,8 @@ const QUARTER_MONTHS = {
 };
 
 const TaxCalendar = () => {
+  const { user } = useAuth();
+  const { format } = useCurrency();
   const [reminders, setReminders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -50,29 +55,28 @@ const TaxCalendar = () => {
     .reduce((s, r) => s + Number(r.amount || 0), 0);
 
   return (
-    <MainLayout>
-      <div className="max-w-6xl mx-auto pb-20 space-y-10">
+    <div className="space-y-8 pb-8">
+      <PageHeader
+        title="Tax Calendar"
+        subtitle="Track quarterly estimated tax deadlines and mark payments as completed"
+      />
 
-        {/* Page header */}
-        <div className="border-l-4 border-indigo-500 pl-6 py-2">
-          <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">Tax Calendar</h1>
-          <p className="text-gray-500 mt-1 font-medium">Track quarterly estimated tax deadlines and mark payments as completed.</p>
-        </div>
+      <TaxDisclaimer country={user?.country} />
 
         {/* Summary bar (only when data exists) */}
         {!loading && reminders.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
               <p className="text-xs uppercase tracking-widest text-gray-400 font-bold mb-1">Total Due This Year</p>
-              <p className="text-3xl font-extrabold text-gray-900">₹{totalAmount.toLocaleString()}</p>
+              <p className="text-3xl font-extrabold text-gray-900">{format(totalAmount)}</p>
             </div>
             <div className="bg-white rounded-2xl border border-emerald-100 shadow-sm p-6">
               <p className="text-xs uppercase tracking-widest text-emerald-500 font-bold mb-1">Amount Paid</p>
-              <p className="text-3xl font-extrabold text-emerald-600">₹{paidAmount.toLocaleString()}</p>
+              <p className="text-3xl font-extrabold text-emerald-600">{format(paidAmount)}</p>
             </div>
             <div className="bg-white rounded-2xl border border-orange-100 shadow-sm p-6">
               <p className="text-xs uppercase tracking-widest text-orange-500 font-bold mb-1">Remaining</p>
-              <p className="text-3xl font-extrabold text-orange-600">₹{(totalAmount - paidAmount).toLocaleString()}</p>
+              <p className="text-3xl font-extrabold text-orange-600">{format(totalAmount - paidAmount)}</p>
             </div>
           </div>
         )}
@@ -141,8 +145,7 @@ const TaxCalendar = () => {
           </div>
         )}
 
-      </div>
-    </MainLayout>
+    </div>
   );
 };
 

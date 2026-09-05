@@ -14,9 +14,23 @@ exports.estimateTax = async (req, res, next) => {
 exports.saveTax = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const { quarter, amount } = req.body;
-    const result = await taxService.saveTaxEstimate(userId, quarter, amount);
+    const result = await taxService.saveTaxEstimate(userId, req.body);
     successResponse(res, result, "Tax estimate saved successfully", 201);
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.saveAllQuarters = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { year, quarters, country } = req.body;
+    const result = await taxService.saveAllQuarters(userId, {
+      year,
+      quarters,
+      country,
+    });
+    successResponse(res, result, "All quarters saved to calendar", 201);
   } catch (error) {
     next(error);
   }
@@ -35,8 +49,7 @@ exports.getTaxCalendar = async (req, res, next) => {
 exports.toggleTaxStatus = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const { id } = req.params;
-    const result = await taxService.toggleTaxStatus(userId, id);
+    const result = await taxService.toggleTaxStatus(userId, req.params.id);
     successResponse(res, result, "Tax status updated");
   } catch (error) {
     next(error);

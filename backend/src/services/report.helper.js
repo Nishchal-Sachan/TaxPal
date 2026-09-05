@@ -1,6 +1,3 @@
-/**
- * Format Categories
- */
 const formatCategoryBreakdown = (transactions) => {
   const breakdown = {};
 
@@ -16,9 +13,6 @@ const formatCategoryBreakdown = (transactions) => {
   }));
 };
 
-/**
- * Monthly Summary Generator
- */
 const generateSummary = (transactions, periodLabel) => {
   const totalIncome = transactions
     .filter((t) => t.type === "income")
@@ -34,26 +28,31 @@ const generateSummary = (transactions, periodLabel) => {
     totalExpense,
     net: totalIncome - totalExpense,
     categories: formatCategoryBreakdown(transactions),
+    transactionCount: transactions.length,
   };
 };
 
-/**
- * CSV Content Generator
- */
-const generateCSVContent = (data) => {
-  let csv = "Period,Type,Category,Amount\n";
-  
-  // This is a simple version. We might want to list transactions or just summary.
-  // The task asks for CSV format. Let's list summary for now or transactions if available.
-  // Given the response structure, summary might be preferred or the actual line items.
-  // I'll add the summary totals first.
-  csv += `${data.period},Total Income,,${data.totalIncome}\n`;
-  csv += `${data.period},Total Expense,,${data.totalExpense}\n`;
-  csv += `${data.period},Net,,${data.net}\n\n`;
-  csv += "Category,Amount\n";
+const generateCSVContent = (data, transactions = [], country = "United States") => {
+  const { formatCurrency } = require("../utils/formatCurrency");
+
+  let csv = "TaxPal Financial Report\n";
+  csv += `Period,${data.period}\n`;
+  csv += `Total Income,${formatCurrency(data.totalIncome, country)}\n`;
+  csv += `Total Expense,${formatCurrency(data.totalExpense, country)}\n`;
+  csv += `Net,${formatCurrency(data.net, country)}\n\n`;
+
+  csv += "Category Breakdown\nCategory,Amount\n";
   data.categories.forEach((c) => {
-    csv += `${c.category},${c.amount}\n`;
+    csv += `${c.category},${formatCurrency(c.amount, country)}\n`;
   });
+
+  if (transactions.length) {
+    csv += "\nTransaction Details\nDate,Type,Category,Amount,Description,Tax Deductible\n";
+    transactions.forEach((tx) => {
+      const date = new Date(tx.date).toISOString().split("T")[0];
+      csv += `${date},${tx.type},${tx.category},${tx.amount},"${(tx.description || "").replace(/"/g, '""')}",${tx.isTaxDeductible ? "Yes" : "No"}\n`;
+    });
+  }
 
   return csv;
 };

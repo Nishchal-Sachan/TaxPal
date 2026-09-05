@@ -1,9 +1,8 @@
 const Category = require("../models/category.model");
+const Transaction = require("../models/transaction.model");
+const Budget = require("../models/budget.model");
 const mongoose = require("mongoose");
 
-/**
- * Create Category
- */
 exports.createCategory = async (userId, data) => {
   const { name, type } = data;
 
@@ -20,12 +19,7 @@ exports.createCategory = async (userId, data) => {
   }
 
   try {
-    const category = await Category.create({
-      user: userId,
-      name,
-      type,
-    });
-
+    const category = await Category.create({ user: userId, name, type });
     return category;
   } catch (err) {
     if (err.code === 11000) {
@@ -37,16 +31,10 @@ exports.createCategory = async (userId, data) => {
   }
 };
 
-/**
- * Get All Categories
- */
 exports.getCategories = async (userId) => {
-  return await Category.find({ user: userId }).sort({ createdAt: -1 });
+  return Category.find({ user: userId }).sort({ createdAt: -1 });
 };
 
-/**
- * Update Category
- */
 exports.updateCategory = async (userId, id, data) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
     const error = new Error("Invalid category ID");
@@ -69,9 +57,6 @@ exports.updateCategory = async (userId, id, data) => {
   return category;
 };
 
-/**
- * Delete Category
- */
 exports.deleteCategory = async (userId, id) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
     const error = new Error("Invalid category ID");
@@ -79,10 +64,7 @@ exports.deleteCategory = async (userId, id) => {
     throw error;
   }
 
-  const category = await Category.findOneAndDelete({
-    _id: id,
-    user: userId,
-  });
+  const category = await Category.findOne({ _id: id, user: userId });
 
   if (!category) {
     const error = new Error("Category not found");
@@ -90,5 +72,18 @@ exports.deleteCategory = async (userId, id) => {
     throw error;
   }
 
-  return;
+  const [txCount, budgetCount] = await Promise.all([
+    Transaction.countDocuments({ user: userId, category: category.name }),
+    Budget.countDocuments({ user: userId, category: category.name }),
+  ]);
+
+  if (txCount > 0 || budgetCount > 0) {
+    const error = new Error(
+      "Cannot delete category used by transactions or budgets"
+    );
+    error.statusCode = 409;
+    throw error;
+  }
+
+  await Category.findOneAndDelete({ _id: id, user: userId });
 };

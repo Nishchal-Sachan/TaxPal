@@ -14,7 +14,6 @@ export default function BudgetForm({
     limit: "",
     month: "",
   });
-
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -48,16 +47,10 @@ export default function BudgetForm({
 
       if (editData) {
         await apiClient.put(`/budgets/${editData._id}`, payload);
-
-        if (onBudgetUpdated) {
-          onBudgetUpdated(payload.month);
-        }
+        onBudgetUpdated?.(payload.month);
       } else {
         await apiClient.post("/budgets", payload);
-
-        if (onBudgetAdded) {
-          onBudgetAdded(payload.month);
-        }
+        onBudgetAdded?.(payload.month);
       }
 
       handleReset();
@@ -69,21 +62,23 @@ export default function BudgetForm({
   };
 
   return (
-    <div className="card">
-      <h3 style={{ marginTop: 0 }}>
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h3 className="mb-5 text-lg font-semibold text-slate-900">
         {editData ? "Update Budget" : "Create New Budget"}
       </h3>
 
-      <form onSubmit={handleSubmit}>
-        <div className="budget-form-grid">
-          <div className="form-group">
-            <label className="form-label">Category</label>
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">
+              Category
+            </label>
             <select
               name="category"
-              className="form-input"
               value={formData.category}
               onChange={handleChange}
               required
+              className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
             >
               <option value="">Select a category</option>
               {[
@@ -100,69 +95,50 @@ export default function BudgetForm({
             </select>
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Budget Amount</label>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">
+              Budget Amount
+            </label>
             <input
               type="number"
               name="limit"
-              className="form-input"
               value={formData.limit}
               onChange={handleChange}
               required
               min="1"
               placeholder="0"
+              className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
             />
           </div>
         </div>
 
-        <div className="form-group" style={{ width: "48.5%" }}>
-          <label className="form-label">Month</label>
+        <div className="sm:w-1/2">
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">
+            Month
+          </label>
           <input
             type="month"
             name="month"
-            className="form-input"
             value={formData.month}
             onChange={handleChange}
             required
+            className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
           />
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: "12px",
-          }}
-        >
+        <div className="flex justify-end gap-3">
           <button
             type="button"
-            className="btn-secondary"
             onClick={handleReset}
             disabled={loading}
-            style={{
-              padding: "10px 20px",
-              borderRadius: "6px",
-              border: "1px solid #ddd",
-              background: "#fff",
-              cursor: "pointer",
-            }}
+            className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
           >
             Cancel
           </button>
-
           <button
             type="submit"
             disabled={loading}
-            style={{
-              padding: "10px 40px",
-              borderRadius: "6px",
-              border: "none",
-              background: "#2563eb",
-              color: "#fff",
-              fontWeight: "bold",
-              cursor: loading ? "not-allowed" : "pointer",
-              opacity: loading ? 0.7 : 1,
-            }}
+            className="rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60"
           >
             {loading
               ? "Processing..."

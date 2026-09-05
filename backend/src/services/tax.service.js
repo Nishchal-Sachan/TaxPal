@@ -1,20 +1,20 @@
 const TaxEstimate = require("../models/taxEstimate.model");
+const User = require("../models/user.model");
 const { TAX_SLABS } = require("../utils/constants");
+const { getDueDateInfo } = require("../utils/taxDueDates");
+const transactionService = require("./transaction.service");
 
-/**
- * Estimate Tax
- * Used by POST /tax/estimate
- */
 exports.estimateTax = async (userId, data) => {
   const {
     country,
     year,
-    income = 0,
+    income,
     businessExpenses = 0,
     retirement = 0,
     insurance = 0,
     homeOffice = 0,
     status = "Single",
+    useTrackedIncome = false,
   } = data;
 
   if (!country || !year) {
@@ -33,12 +33,26 @@ exports.estimateTax = async (userId, data) => {
   const validStatuses = ["Single", "Married", "Business"];
   const filingStatus = validStatuses.includes(status) ? status : "Single";
 
-  const totalIncome = Number(income);
-  const deductions =
+  let totalIncome = Number(income) || 0;
+
+  if (useTrackedIncome) {
+    const tracked = await transactionService.getIncomeTotal(userId, Number(year));
+    totalIncome = tracked || totalIncome;
+  }
+
+  let deductions =
     Number(businessExpenses) +
     Number(retirement) +
     Number(insurance) +
     Number(homeOffice);
+
+  if (useTrackedIncome) {
+    const trackedDeductions = await transactionService.getTaxDeductibleTotal(
+      userId,
+      Number(year)
+    );
+    deductions += trackedDeductions;
+  }
 
   let taxableIncome = Math.max(totalIncome - deductions, 0);
 
@@ -63,17 +77,14 @@ exports.estimateTax = async (userId, data) => {
   const yearlyTax = Math.round(tax);
   const quarterlyTax = Math.round(yearlyTax / 4);
 
-  const quarters = [
-    { quarter: "Q1", tax: quarterlyTax },
-    { quarter: "Q2", tax: quarterlyTax },
-    { quarter: "Q3", tax: quarterlyTax },
-    { quarter: "Q4", tax: quarterlyTax },
-  ];
+  const quarters = ["Q1", "Q2", "Q3", "Q4"].map((q) => ({
+    quarter: q,
+    tax: quarterlyTax,
+    dueDate: getDueDateInfo(country, q, Number(year)).date,
+  }));
 
   const effectiveRate =
-    taxableIncome > 0
-      ? ((yearlyTax / taxableIncome) * 100).toFixed(2)
-      : 0;
+    taxableIncome > 0 ? ((yearlyTax / taxableIncome) * 100).toFixed(2) : 0;
 
   return {
     country,
@@ -85,16 +96,15 @@ exports.estimateTax = async (userId, data) => {
     effectiveRate,
     taxableIncome,
     deductions,
+    totalIncome,
+    useTrackedIncome: Boolean(useTrackedIncome),
+    disclaimer:
+      "Estimates only — not tax advice. Consult a qualified tax professional.",
   };
 };
 
-
-/**
- * Save Quarterly Tax Estimate
- * Used by POST /tax/save
- */
-exports.saveTaxEstimate = async (userId, quarter, amount) => {
-  if (!quarter || !amount) {
+exports.saveTaxEstimate = async (userId, { quarter, amount, year, country }) => {
+  if (!quarter || amount === undefined) {
     const error = new Error("Quarter and amount are required");
     error.statusCode = 400;
     throw error;
@@ -102,58 +112,71 @@ exports.saveTaxEstimate = async (userId, quarter, amount) => {
 
   const validQuarters = ["Q1", "Q2", "Q3", "Q4"];
   if (!validQuarters.includes(quarter)) {
-    const error = new Error("Invalid quarter. Must be Q1, Q2, Q3, or Q4");
+    const error = new Error("Invalid quarter");
     error.statusCode = 400;
     throw error;
   }
 
+  const taxYear = year || new Date().getFullYear();
+  const user = await User.findById(userId);
+
   const estimate = await TaxEstimate.findOneAndUpdate(
-    { user: userId, quarter },
-    { user: userId, quarter, amount },
+    { user: userId, year: taxYear, quarter },
+    {
+      user: userId,
+      year: taxYear,
+      quarter,
+      amount,
+      country: country || user?.country,
+    },
     { new: true, upsert: true, runValidators: true }
   );
 
   return estimate;
 };
 
+exports.saveAllQuarters = async (userId, { year, quarters, country }) => {
+  const taxYear = year || new Date().getFullYear();
+  const results = [];
 
-/**
- * Get Tax Calendar
- * Used by GET /tax/calendar
- * Q1→Jun 15, Q2→Sep 15, Q3→Dec 15, Q4→Mar 15 (next year)
- */
+  for (const q of quarters) {
+    const saved = await exports.saveTaxEstimate(userId, {
+      quarter: q.quarter,
+      amount: q.tax,
+      year: taxYear,
+      country,
+    });
+    results.push(saved);
+  }
+
+  return results;
+};
+
 exports.getTaxCalendar = async (userId) => {
+  const user = await User.findById(userId);
+  const country = user?.country || "United States";
   const year = new Date().getFullYear();
-  const nextYear = year + 1;
 
-  const dueDates = {
-    Q1: { date: `${year}-06-15`, title: "Q1 Estimated Payment" },
-    Q2: { date: `${year}-09-15`, title: "Q2 Estimated Payment" },
-    Q3: { date: `${year}-12-15`, title: "Q3 Estimated Payment" },
-    Q4: { date: `${nextYear}-03-15`, title: "Q4 Estimated Payment" },
-  };
-
-  const estimates = await TaxEstimate.find({ user: userId }).sort({ quarter: 1 });
+  const estimates = await TaxEstimate.find({ user: userId, year }).sort({
+    quarter: 1,
+  });
 
   return estimates.map((item) => {
-    const dueInfo = dueDates[item.quarter];
+    const dueInfo = getDueDateInfo(country, item.quarter, item.year || year);
     return {
       id: item._id.toString(),
       quarter: item.quarter,
+      year: item.year,
       title: dueInfo.title,
       description: "Estimated quarterly tax payment",
       dueDate: dueInfo.date,
       amount: item.amount,
       status: item.status || "unpaid",
+      country,
     };
   });
 };
 
-
-/**
- * Toggle Tax Payment Status
- * Used by PATCH /tax/calendar/:id/toggle
- */
 exports.toggleTaxStatus = async (userId, estimateId) => {
   const estimate = await TaxEstimate.findOne({ _id: estimateId, user: userId });
 

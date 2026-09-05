@@ -7,6 +7,11 @@ const taxEstimateSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    year: {
+      type: Number,
+      required: true,
+      default: () => new Date().getFullYear(),
+    },
     quarter: {
       type: String,
       required: true,
@@ -22,11 +27,14 @@ const taxEstimateSchema = new mongoose.Schema(
       enum: ["unpaid", "paid"],
       default: "unpaid",
     },
+    country: {
+      type: String,
+      trim: true,
+    },
   },
   { timestamps: true }
 );
 
-// Ensure one estimate per user per quarter (update instead of duplicate)
-taxEstimateSchema.index({ user: 1, quarter: 1 }, { unique: true });
+taxEstimateSchema.index({ user: 1, year: 1, quarter: 1 }, { unique: true });
 
 module.exports = mongoose.model("TaxEstimate", taxEstimateSchema);

@@ -2,11 +2,16 @@ import { useEffect, useState } from "react";
 import apiClient from "../api/apiClient";
 import CategoryForm from "../components/category/CategoryForm";
 import CategoryList from "../components/category/CategoryList";
+import PageHeader from "../components/ui/PageHeader";
+import ConfirmModal from "../components/ui/ConfirmModal";
+import { useToast } from "../context/ToastContext";
 
 export default function Categories() {
+  const toast = useToast();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
+  const [deleteId, setDeleteId] = useState(null);
 
   const fetchCategories = async () => {
     try {
@@ -14,7 +19,6 @@ export default function Categories() {
       const res = await apiClient.get("/categories");
       setCategories(res.data.data || []);
     } catch {
-      console.error("Fetch failed");
       setCategories([]);
     } finally {
       setLoading(false);
@@ -25,20 +29,23 @@ export default function Categories() {
     fetchCategories();
   }, []);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete this category?")) return;
-
+  const handleDelete = async () => {
     try {
-      await apiClient.delete(`/categories/${id}`);
+      await apiClient.delete(`/categories/${deleteId}`);
+      toast.success("Category deleted");
+      setDeleteId(null);
       fetchCategories();
-    } catch {
-      alert("Delete failed");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Delete failed");
     }
   };
 
   return (
-    <div style={{ padding: "30px", maxWidth: "1000px", margin: "0 auto" }}>
-      <h1 className="mb-6 text-2xl font-bold">Category Management</h1>
+    <div className="space-y-8">
+      <PageHeader
+        title="Categories"
+        subtitle="Organize your income and expense types"
+      />
 
       <CategoryForm
         editData={editing}
@@ -46,14 +53,21 @@ export default function Categories() {
         onSuccess={fetchCategories}
       />
 
-      <div className="mt-8">
-        <CategoryList
-          items={categories}
-          loading={loading}
-          onEdit={(item) => setEditing(item)}
-          onDelete={handleDelete}
-        />
-      </div>
+      <CategoryList
+        items={categories}
+        loading={loading}
+        onEdit={(item) => setEditing(item)}
+        onDelete={(id) => setDeleteId(id)}
+      />
+
+      <ConfirmModal
+        open={!!deleteId}
+        title="Delete Category"
+        message="Categories used by transactions or budgets cannot be deleted."
+        danger
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteId(null)}
+      />
     </div>
   );
 }

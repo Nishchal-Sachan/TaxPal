@@ -7,6 +7,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
+import { useCurrency } from "../../hooks/useCurrency";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
@@ -27,6 +28,7 @@ const StatCard = ({ label, value, sub, color = "indigo" }) => {
 };
 
 export default function TaxSummary({ result }) {
+  const { format } = useCurrency();
   if (!result) {
     return (
       <div className="bg-gradient-to-br from-indigo-50 to-white border-2 border-dashed border-indigo-100 rounded-3xl p-16 flex flex-col items-center gap-6 text-center h-full">
@@ -53,7 +55,7 @@ export default function TaxSummary({ result }) {
     labels: quarters.map((q) => q.label),
     datasets: [
       {
-        label: "Quarterly Tax (₹)",
+        label: "Quarterly Tax",
         data: quarters.map((q) => q.value),
         backgroundColor: ["#818cf8", "#60a5fa", "#34d399", "#f472b6"],
         borderRadius: 10,
@@ -69,7 +71,7 @@ export default function TaxSummary({ result }) {
       legend: { display: false },
       tooltip: {
         callbacks: {
-          label: (ctx) => `₹${ctx.parsed.y.toLocaleString()}`,
+          label: (ctx) => format(ctx.parsed.y),
         },
       },
     },
@@ -86,7 +88,7 @@ export default function TaxSummary({ result }) {
         <div className="absolute -top-8 -right-8 w-36 h-36 rounded-full bg-white opacity-5" />
         <div className="absolute -bottom-6 -left-6 w-28 h-28 rounded-full bg-white opacity-5" />
         <p className="text-indigo-200 text-sm font-bold uppercase tracking-widest mb-2">Estimated Yearly Tax</p>
-        <p className="text-6xl font-extrabold tracking-tight">₹{yearlyTax.toLocaleString()}</p>
+        <p className="text-6xl font-extrabold tracking-tight">{format(yearlyTax)}</p>
         <p className="text-indigo-200 mt-3 text-sm">
           Effective Rate: <strong className="text-white">{result.effectiveRate || 0}%</strong>
           &nbsp;·&nbsp; Country: <strong className="text-white">{result.country}</strong>
@@ -96,10 +98,10 @@ export default function TaxSummary({ result }) {
 
       {/* Stat grid */}
       <div className="grid grid-cols-2 gap-4">
-        <StatCard label="Taxable Income" value={`₹${(result.taxableIncome || 0).toLocaleString()}`} color="indigo" />
-        <StatCard label="Total Deductions" value={`₹${(result.deductions || 0).toLocaleString()}`} color="violet" />
-        <StatCard label="Quarterly Tax" value={`₹${quarterlyTax.toLocaleString()}`} sub="Due each quarter" color="emerald" />
-        <StatCard label="Monthly Equivalent" value={`₹${Math.round(yearlyTax / 12).toLocaleString()}`} sub="For planning purposes" color="rose" />
+        <StatCard label="Taxable Income" value={format(result.taxableIncome || 0)} color="indigo" />
+        <StatCard label="Total Deductions" value={format(result.deductions || 0)} color="violet" />
+        <StatCard label="Quarterly Tax" value={format(quarterlyTax)} sub="Due each quarter" color="emerald" />
+        <StatCard label="Monthly Equivalent" value={format(Math.round(yearlyTax / 12))} sub="For planning purposes" color="rose" />
       </div>
 
       {/* Bar chart */}
@@ -117,7 +119,7 @@ export default function TaxSummary({ result }) {
           return (
             <div key={q.label} className={`${colors[i]} text-white rounded-2xl p-4 text-center shadow-md`}>
               <p className="text-xs font-bold opacity-80 uppercase tracking-wider">{q.label}</p>
-              <p className="text-xl font-extrabold mt-1">₹{q.value.toLocaleString()}</p>
+              <p className="text-xl font-extrabold mt-1">{format(q.value)}</p>
             </div>
           );
         })}

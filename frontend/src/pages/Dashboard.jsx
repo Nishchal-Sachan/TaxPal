@@ -10,11 +10,14 @@ import {
   Legend,
 } from "chart.js";
 import { Bar, Pie } from "react-chartjs-2";
-import MainLayout from "../layouts/MainLayout";
+import { FiPlus, FiX } from "react-icons/fi";
+import OnboardingBanner from "../components/onboarding/OnboardingBanner";
+import PageHeader from "../components/ui/PageHeader";
 import SummaryCard from "../components/dashboard/SummaryCard";
 import TransactionList from "../components/dashboard/TransactionList";
 import apiClient from "../api/apiClient";
 import { useCategories } from "../hooks/useCategories";
+import { useCurrency } from "../hooks/useCurrency";
 
 ChartJS.register(
   CategoryScale,
@@ -33,12 +36,13 @@ const getInitialFormData = () => ({
 });
 
 export default function Dashboard() {
+  const { format } = useCurrency();
   const { incomeCategories, expenseCategories } = useCategories();
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [range, setRange] = useState("all");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [transactionType, setTransactionType] = useState("income");
   const [formData, setFormData] = useState(getInitialFormData());
@@ -49,15 +53,16 @@ export default function Dashboard() {
     setLoading(true);
     setError(null);
     try {
-      const response = await apiClient.get("/dashboard/summary");
-      const data = response.data.data;
-      setSummary(data);
+      const response = await apiClient.get("/dashboard/summary", {
+        params: { range },
+      });
+      setSummary(response.data.data);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load summary");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [range]);
 
   useEffect(() => {
     fetchSummary();
@@ -110,12 +115,13 @@ export default function Dashboard() {
 
   const barChartData = useMemo(
     () => ({
-      labels: ["Total Income", "Total Expense"],
+      labels: ["Income", "Expense"],
       datasets: [
         {
           label: "Amount",
           data: [totalIncome, totalExpense],
-          backgroundColor: ["#22c55e", "#dc2626"],
+          backgroundColor: ["#10b981", "#f43f5e"],
+          borderRadius: 8,
         },
       ],
     }),
@@ -123,7 +129,7 @@ export default function Dashboard() {
   );
 
   const expenseBreakdown = useMemo(() => {
-    const transactions = summary?.transactions ?? [];
+    const transactions = summary?.last5Transactions ?? [];
     const byCategory = transactions
       .filter((t) => t.type === "expense")
       .reduce((acc, t) => {
@@ -144,11 +150,12 @@ export default function Dashboard() {
         {
           data: expenseBreakdown.data,
           backgroundColor: [
-            "#3b82f6",
-            "#22c55e",
+            "#6366f1",
+            "#10b981",
             "#f59e0b",
             "#ef4444",
             "#8b5cf6",
+            "#06b6d4",
           ],
         },
       ],
@@ -158,149 +165,105 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <MainLayout>
-        <div style={{ padding: "48px", textAlign: "center", color: "#6b7280" }}>
-          Loading...
-        </div>
-      </MainLayout>
+      <div className="flex items-center justify-center py-24">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600" />
+      </div>
     );
   }
 
   if (error) {
     return (
-      <MainLayout>
-        <div
-          style={{
-            padding: "16px",
-            background: "#fef2f2",
-            color: "#dc2626",
-            borderRadius: "8px",
-          }}
-        >
-          {error}
-        </div>
-      </MainLayout>
+      <div className="rounded-2xl border border-red-100 bg-red-50 px-6 py-4 text-red-700">
+        {error}
+      </div>
     );
   }
 
   return (
-    <MainLayout>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          gap: "12px",
-          marginBottom: "20px",
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => openModal("income")}
-          style={{
-            padding: "10px 20px",
-            backgroundColor: "#22c55e",
-            color: "white",
-            border: "none",
-            borderRadius: "6px",
-            fontSize: "14px",
-            fontWeight: 500,
-            cursor: "pointer",
-          }}
-        >
-          Add Income
-        </button>
-        <button
-          type="button"
-          onClick={() => openModal("expense")}
-          style={{
-            padding: "10px 20px",
-            backgroundColor: "#dc2626",
-            color: "white",
-            border: "none",
-            borderRadius: "6px",
-            fontSize: "14px",
-            fontWeight: 500,
-            cursor: "pointer",
-          }}
-        >
-          Add Expense
-        </button>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        title="Dashboard"
+        subtitle="Overview of your income, expenses, and recent activity"
+        action={
+          <div className="flex flex-wrap items-center gap-3">
+            <select
+              value={range}
+              onChange={(e) => setRange(e.target.value)}
+              className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            >
+              <option value="all">All Time</option>
+              <option value="month">This Month</option>
+              <option value="year">This Year</option>
+            </select>
+            <button
+              type="button"
+              onClick={() => openModal("income")}
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"
+            >
+              <FiPlus className="h-4 w-4" />
+              Add Income
+            </button>
+            <button
+              type="button"
+              onClick={() => openModal("expense")}
+              className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-700"
+            >
+              <FiPlus className="h-4 w-4" />
+              Add Expense
+            </button>
+          </div>
+        }
+      />
+
+      <OnboardingBanner />
+
+      {summary?.budgetAlerts?.length > 0 && (
+        <div className="space-y-2">
+          {summary.budgetAlerts.map((alert) => (
+            <div
+              key={alert.category}
+              className={`rounded-xl px-4 py-3 text-sm font-medium ${
+                alert.level === "exceeded"
+                  ? "border border-red-200 bg-red-50 text-red-800"
+                  : "border border-amber-200 bg-amber-50 text-amber-800"
+              }`}
+            >
+              {alert.message}
+            </div>
+          ))}
+        </div>
+      )}
 
       {isModalOpen && (
         <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0,0,0,0.4)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-          }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
           onClick={closeModal}
         >
           <div
-            style={{
-              backgroundColor: "white",
-              borderRadius: "8px",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-              padding: "24px",
-              width: "100%",
-              maxWidth: "400px",
-              position: "relative",
-            }}
+            className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               type="button"
               onClick={closeModal}
-              style={{
-                position: "absolute",
-                top: "12px",
-                right: "12px",
-                background: "none",
-                border: "none",
-                fontSize: "20px",
-                cursor: "pointer",
-                color: "#6b7280",
-              }}
+              className="absolute right-4 top-4 rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
             >
-              ×
+              <FiX className="h-5 w-5" />
             </button>
 
-            <h3 style={{ margin: "0 0 20px 0", fontSize: "18px" }}>
+            <h3 className="mb-5 text-lg font-bold text-slate-900">
               Add {transactionType === "income" ? "Income" : "Expense"}
             </h3>
 
             {modalError && (
-              <div
-                style={{
-                  padding: "8px 12px",
-                  backgroundColor: "#fef2f2",
-                  color: "#dc2626",
-                  borderRadius: "6px",
-                  marginBottom: "16px",
-                  fontSize: "13px",
-                }}
-              >
+              <div className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
                 {modalError}
               </div>
             )}
 
-            <form onSubmit={handleModalSave}>
-              <div style={{ marginBottom: "16px" }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "13px",
-                    fontWeight: 500,
-                    marginBottom: "6px",
-                  }}
-                >
+            <form onSubmit={handleModalSave} className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">
                   Category
                 </label>
                 <select
@@ -308,34 +271,21 @@ export default function Dashboard() {
                   value={formData.category}
                   onChange={handleModalChange}
                   required
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "6px",
-                    fontSize: "14px",
-                    boxSizing: "border-box",
-                  }}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                 >
                   <option value="">Select a category</option>
-                  {(transactionType === "income" ? incomeCategories : expenseCategories).map(
-                    (cat) => (
-                      <option key={cat._id} value={cat.name}>
-                        {cat.name}
-                      </option>
-                    )
-                  )}
+                  {(transactionType === "income"
+                    ? incomeCategories
+                    : expenseCategories
+                  ).map((cat) => (
+                    <option key={cat._id} value={cat.name}>
+                      {cat.name}
+                    </option>
+                  ))}
                 </select>
               </div>
-              <div style={{ marginBottom: "16px" }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "13px",
-                    fontWeight: 500,
-                    marginBottom: "6px",
-                  }}
-                >
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">
                   Amount
                 </label>
                 <input
@@ -346,25 +296,11 @@ export default function Dashboard() {
                   step="0.01"
                   min="0"
                   required
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "6px",
-                    fontSize: "14px",
-                    boxSizing: "border-box",
-                  }}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                 />
               </div>
-              <div style={{ marginBottom: "20px" }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "13px",
-                    fontWeight: 500,
-                    marginBottom: "6px",
-                  }}
-                >
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">
                   Date
                 </label>
                 <input
@@ -373,45 +309,21 @@ export default function Dashboard() {
                   value={formData.date}
                   onChange={handleModalChange}
                   required
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "6px",
-                    fontSize: "14px",
-                    boxSizing: "border-box",
-                  }}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                 />
               </div>
-              <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
+              <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
                   onClick={closeModal}
-                  style={{
-                    padding: "10px 20px",
-                    backgroundColor: "#e5e7eb",
-                    color: "#374151",
-                    border: "none",
-                    borderRadius: "6px",
-                    fontSize: "14px",
-                    cursor: "pointer",
-                  }}
+                  className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={modalLoading}
-                  style={{
-                    padding: "10px 20px",
-                    backgroundColor: "#3b82f6",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "6px",
-                    fontSize: "14px",
-                    cursor: modalLoading ? "not-allowed" : "pointer",
-                    opacity: modalLoading ? 0.7 : 1,
-                  }}
+                  className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60"
                 >
                   {modalLoading ? "Saving..." : "Save"}
                 </button>
@@ -421,100 +333,61 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="dashboard-cards">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <SummaryCard
           title="Total Income"
-          value={`$${Number(totalIncome).toFixed(2)}`}
+          value={format(totalIncome)}
           icon="↑"
+          variant="income"
         />
         <SummaryCard
           title="Total Expense"
-          value={`$${Number(totalExpense).toFixed(2)}`}
+          value={format(totalExpense)}
           icon="↓"
+          variant="expense"
         />
         <SummaryCard
           title="Net Balance"
-          value={`$${Number(netBalance).toFixed(2)}`}
-          icon="▣"
+          value={format(netBalance)}
+          icon="="
+          variant="balance"
         />
       </div>
 
-      <div
-        className="dashboard-charts"
-        style={{
-          display: "flex",
-          gap: "16px",
-          marginBottom: "24px",
-          flexWrap: "wrap",
-        }}
-      >
-        <div
-          className="dashboard-chart"
-          style={{
-            flex: 1,
-            minWidth: "280px",
-            backgroundColor: "white",
-            borderRadius: "8px",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-            padding: "20px",
-            border: "1px solid #e5e7eb",
-          }}
-        >
-          <h3 className="dashboard-chart-title">Income vs Expense</h3>
-          <div style={{ height: "200px" }}>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h3 className="mb-4 text-sm font-semibold text-slate-700">
+            Income vs Expense
+          </h3>
+          <div className="h-56">
             <Bar
               data={barChartData}
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: {
-                  legend: { display: false },
-                },
-                scales: {
-                  y: { beginAtZero: true },
-                },
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, grid: { color: "#f1f5f9" } } },
               }}
             />
           </div>
         </div>
-        <div
-          className="dashboard-chart"
-          style={{
-            flex: 1,
-            minWidth: "280px",
-            backgroundColor: "white",
-            borderRadius: "8px",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-            padding: "20px",
-            border: "1px solid #e5e7eb",
-          }}
-        >
-          <h3 className="dashboard-chart-title">Expense Breakdown</h3>
-          <div style={{ height: "200px" }}>
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h3 className="mb-4 text-sm font-semibold text-slate-700">
+            Expense Breakdown
+          </h3>
+          <div className="h-56">
             {expenseBreakdown.labels.length > 0 ? (
               <Pie
                 data={pieChartData}
                 options={{
                   responsive: true,
                   maintainAspectRatio: false,
-                  plugins: {
-                    legend: { position: "bottom" },
-                  },
+                  plugins: { legend: { position: "bottom" } },
                 }}
               />
             ) : (
-              <div
-                className="dashboard-chart-placeholder"
-                style={{
-                  height: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#9ca3af",
-                  fontSize: "13px",
-                }}
-              >
-                No expense data
+              <div className="flex h-full items-center justify-center text-sm text-slate-400">
+                No expense data yet
               </div>
             )}
           </div>
@@ -522,13 +395,17 @@ export default function Dashboard() {
       </div>
 
       <div>
-        <h3 className="dashboard-section-title">Recent Transactions</h3>
+        <h3 className="mb-4 text-lg font-semibold text-slate-900">
+          Recent Transactions
+        </h3>
         <TransactionList
+          transactions={summary?.last5Transactions || []}
           refreshTrigger={refreshTrigger}
           onTransactionChange={handleTransactionChange}
           hideTitle
+          compact
         />
       </div>
-    </MainLayout>
+    </div>
   );
-};
+}

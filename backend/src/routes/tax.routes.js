@@ -5,6 +5,7 @@ const taxController = require("../controllers/tax.controller");
 
 router.post("/estimate", auth, taxController.estimateTax);
 router.post("/save", auth, taxController.saveTax);
+router.post("/save-all", auth, taxController.saveAllQuarters);
 router.get("/calendar", auth, taxController.getTaxCalendar);
 router.patch("/calendar/:id/toggle", auth, taxController.toggleTaxStatus);
 

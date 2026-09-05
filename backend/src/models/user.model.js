@@ -7,7 +7,6 @@ const userSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-
     email: {
       type: String,
       required: true,
@@ -15,21 +14,26 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
     },
-
     password: {
       type: String,
       required: true,
       select: false,
     },
-
     country: {
       type: String,
       trim: true,
     },
-
     incomeBracket: {
       type: String,
       enum: ["low", "middle", "high"],
+    },
+    onboardingComplete: {
+      type: Boolean,
+      default: false,
+    },
+    preferences: {
+      budgetAlertThreshold: { type: Number, default: 80 },
+      emailNotifications: { type: Boolean, default: false },
     },
   },
   { timestamps: true }

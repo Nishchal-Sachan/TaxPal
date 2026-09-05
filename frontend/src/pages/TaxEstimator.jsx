@@ -1,12 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import TaxForm from "../components/tax/TaxForm";
 import TaxSummary from "../components/tax/TaxSummary";
-import MainLayout from "../layouts/MainLayout";
+import TaxDisclaimer from "../components/tax/TaxDisclaimer";
+import PageHeader from "../components/ui/PageHeader";
 import apiClient from "../api/apiClient";
 
 export default function TaxEstimator() {
+  const { user } = useAuth();
+  const toast = useToast();
   const [formData, setFormData] = useState({
-    country: "India",
+    country: user?.country || "India",
     year: new Date().getFullYear(),
     income: "",
     businessExpenses: "",
@@ -14,59 +19,66 @@ export default function TaxEstimator() {
     insurance: "",
     homeOffice: "",
     status: "Single",
+    useTrackedIncome: false,
   });
-
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (user?.country) {
+      setFormData((prev) => ({ ...prev, country: user.country }));
+    }
+  }, [user?.country]);
 
   const handleCalculate = async () => {
-    if (!formData.income || parseFloat(formData.income) <= 0) {
-      setError("Please enter a valid annual income.");
+    if (!formData.useTrackedIncome && (!formData.income || parseFloat(formData.income) <= 0)) {
+      setError("Please enter a valid annual income or enable tracked income.");
       return;
     }
 
     setLoading(true);
     setError("");
-    setSaved(false);
 
     try {
       const payload = {
         country: formData.country,
-        year: Number(formData.year) || new Date().getFullYear(),
+        year: Number(formData.year),
         income: Number(formData.income) || 0,
         businessExpenses: Number(formData.businessExpenses) || 0,
         retirement: Number(formData.retirement) || 0,
         insurance: Number(formData.insurance) || 0,
         homeOffice: Number(formData.homeOffice) || 0,
         status: formData.status || "Single",
+        useTrackedIncome: Boolean(formData.useTrackedIncome),
       };
 
       const res = await apiClient.post("/tax/estimate", payload);
-      const data = res.data.data || res.data;
-      setResult(data);
-
-      // Auto-save quarterly estimates to populate the calendar
-      if (data.quarters && Array.isArray(data.quarters)) {
-        await Promise.all(
-          data.quarters.map((q) =>
-            apiClient.post("/tax/save", { quarter: q.quarter, amount: q.tax })
-          )
-        );
-        setSaved(true);
-      }
+      setResult(res.data.data);
     } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || "Tax calculation failed. Please try again.");
+      setError(err.response?.data?.message || "Tax calculation failed.");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleSaveToCalendar = async () => {
+    if (!result?.quarters) return;
+    try {
+      await apiClient.post("/tax/save-all", {
+        year: result.year,
+        country: result.country,
+        quarters: result.quarters,
+      });
+      toast.success("Quarterly estimates saved to Tax Calendar");
+    } catch {
+      toast.error("Failed to save to calendar");
+    }
+  };
+
   const handleReset = () => {
     setFormData({
-      country: "India",
+      country: user?.country || "India",
       year: new Date().getFullYear(),
       income: "",
       businessExpenses: "",
@@ -74,74 +86,61 @@ export default function TaxEstimator() {
       insurance: "",
       homeOffice: "",
       status: "Single",
+      useTrackedIncome: false,
     });
     setResult(null);
     setError("");
-    setSaved(false);
   };
 
   return (
-    <MainLayout>
-      <div className="max-w-7xl mx-auto pb-20 space-y-10">
-
-        {/* Header */}
-        <div className="border-l-4 border-indigo-500 pl-6 py-2 flex items-start justify-between flex-wrap gap-4">
-          <div>
-            <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">Tax Estimator</h1>
-            <p className="text-gray-500 mt-1 font-medium">Estimate your annual and quarterly taxes with precision.</p>
-          </div>
-          {result && (
+    <div className="space-y-8 pb-8">
+      <PageHeader
+        title="Tax Estimator"
+        subtitle="Estimate your annual and quarterly taxes"
+        action={
+          result && (
             <button
               onClick={handleReset}
-              className="text-sm text-gray-500 hover:text-gray-800 border border-gray-200 rounded-xl px-4 py-2 hover:border-gray-400 transition-all font-semibold"
+              className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
             >
-              ↺ Reset
+              Reset
             </button>
+          )
+        }
+      />
+
+      <TaxDisclaimer country={formData.country} />
+
+      <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2">
+        <div className="space-y-4">
+          <TaxForm formData={formData} setFormData={setFormData} />
+
+          <button
+            onClick={handleCalculate}
+            disabled={loading}
+            className="w-full rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 py-4 text-lg font-bold text-white shadow-lg disabled:opacity-50"
+          >
+            {loading ? "Calculating..." : "Calculate Tax"}
+          </button>
+
+          {result && (
+            <button
+              onClick={handleSaveToCalendar}
+              className="w-full rounded-2xl border border-indigo-200 bg-indigo-50 py-3 text-sm font-semibold text-indigo-700 hover:bg-indigo-100"
+            >
+              Save to Tax Calendar
+            </button>
+          )}
+
+          {error && (
+            <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
           )}
         </div>
 
-        {/* Main layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-
-          {/* Left — Form */}
-          <div className="space-y-5 sticky top-4">
-            <TaxForm formData={formData} setFormData={setFormData} />
-
-            <button
-              onClick={handleCalculate}
-              disabled={loading}
-              className="w-full py-5 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-extrabold text-lg shadow-xl shadow-indigo-200 hover:shadow-indigo-300 hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50 disabled:translate-y-0 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-            >
-              {loading ? (
-                <>
-                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  Calculating...
-                </>
-              ) : (
-                <>🧮 Calculate Tax</>
-              )}
-            </button>
-
-            {error && (
-              <div className="bg-red-50 border border-red-100 text-red-700 rounded-2xl p-4 text-sm font-semibold flex items-center gap-3">
-                <span className="text-xl">⚠️</span> {error}
-              </div>
-            )}
-            {saved && (
-              <div className="bg-emerald-50 border border-emerald-100 text-emerald-700 rounded-2xl p-4 text-sm font-semibold flex items-center gap-3">
-                <span className="text-xl">✅</span> Quarterly estimates saved to your Tax Calendar!
-              </div>
-            )}
-          </div>
-
-          {/* Right — Summary */}
-          <TaxSummary result={result} />
-        </div>
-
+        <TaxSummary result={result} />
       </div>
-    </MainLayout>
+    </div>
   );
 }

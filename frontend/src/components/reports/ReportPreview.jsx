@@ -1,41 +1,50 @@
 import React from 'react';
+import { useCurrency } from '../../hooks/useCurrency';
 import CategoryBreakdown from './CategoryBreakdown';
 
 const ReportPreview = ({ summary }) => {
+  const { format } = useCurrency();
+
   if (!summary) return null;
 
   return (
-    <div className="space-y-8 mt-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-center justify-between border-b pb-4 border-gray-100">
-        <h2 className="text-2xl font-bold text-gray-900">{summary.period} Summary</h2>
-        <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full uppercase tracking-wider border border-blue-100 shadow-sm">Report Preview</span>
+    <div className="space-y-8">
+      <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+        <h2 className="text-2xl font-bold text-slate-900">{summary.period} Summary</h2>
+        <span className="rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-indigo-700">
+          Report Preview
+        </span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform"><span className="text-4xl">↑</span></div>
-          <p className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-1">Total Income</p>
-          <p className="text-3xl font-extrabold text-emerald-600">${summary.totalIncome?.toLocaleString() || 0}</p>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-6">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            Total Income
+          </p>
+          <p className="mt-2 text-3xl font-bold text-emerald-600">
+            {format(summary.totalIncome)}
+          </p>
         </div>
-        
-        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-           <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform"><span className="text-4xl text-rose-600">↓</span></div>
-          <p className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-1">Total Expenses</p>
-          <p className="text-3xl font-extrabold text-rose-600">${summary.totalExpense?.toLocaleString() || 0}</p>
+        <div className="rounded-2xl border border-rose-100 bg-rose-50/50 p-6">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            Total Expenses
+          </p>
+          <p className="mt-2 text-3xl font-bold text-rose-600">
+            {format(summary.totalExpense)}
+          </p>
         </div>
-
-        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform"><span className="text-4xl text-blue-600">±</span></div>
-          <p className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-1">Net Savings</p>
-          <p className={`text-3xl font-extrabold ${summary.net >= 0 ? 'text-blue-600' : 'text-orange-500'}`}>
-            ${summary.net?.toLocaleString() || 0}
+        <div className="rounded-2xl border border-indigo-100 bg-indigo-50/50 p-6">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            Net Savings
+          </p>
+          <p className={`mt-2 text-3xl font-bold ${summary.net >= 0 ? 'text-indigo-600' : 'text-orange-500'}`}>
+            {format(summary.net)}
           </p>
         </div>
       </div>
 
-      <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
-        <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-3">
-          <span className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">▤</span>
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h3 className="mb-4 text-lg font-semibold text-slate-900">
           Expense Breakdown by Category
         </h3>
         <CategoryBreakdown categories={summary.categories} />

@@ -3,71 +3,68 @@ import apiClient from "../api/apiClient";
 import BudgetForm from "../components/budget/BudgetForm";
 import BudgetList from "../components/budget/BudgetList";
 import SpendingChart from "../components/charts/SpendingChart";
+import PageHeader from "../components/ui/PageHeader";
+import ConfirmModal from "../components/ui/ConfirmModal";
+import { useToast } from "../context/ToastContext";
 
 export default function Budgets() {
+  const toast = useToast();
   const [selectedMonth, setSelectedMonth] = useState(
-    new Date().toISOString().slice(0, 7),
+    new Date().toISOString().slice(0, 7)
   );
-
   const [progressData, setProgressData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingBudget, setEditingBudget] = useState(null);
+  const [deleteId, setDeleteId] = useState(null);
 
-  const fetchProgress = useCallback(async (month) => {
-    const m = month ?? selectedMonth;
-    try {
-      setLoading(true);
-
-      const res = await apiClient.get(
-        `/budgets/progress?month=${m}`,
-      );
-
-      const progress = res.data.data || [];
-      setProgressData(progress);
-    } catch (err) {
-      console.error("Progress fetch failed:", err.response?.data?.message);
-      setProgressData([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedMonth]);
+  const fetchProgress = useCallback(
+    async (month) => {
+      const m = month ?? selectedMonth;
+      try {
+        setLoading(true);
+        const res = await apiClient.get(`/budgets/progress?month=${m}`);
+        setProgressData(res.data.data || []);
+      } catch {
+        setProgressData([]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [selectedMonth]
+  );
 
   useEffect(() => {
     fetchProgress();
   }, [fetchProgress]);
 
-  // 🔥 Delete Handler
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete this budget?")) return;
-
+  const handleDelete = async () => {
     try {
-      await apiClient.delete(`/budgets/${id}`);
+      await apiClient.delete(`/budgets/${deleteId}`);
+      toast.success("Budget deleted");
+      setDeleteId(null);
       fetchProgress();
     } catch {
-      alert("Delete failed");
+      toast.error("Delete failed");
     }
   };
 
   return (
-    <div style={{ padding: "30px", maxWidth: "1200px", margin: "0 auto" }}>
-      <h1>Budgets</h1>
+    <div className="space-y-8">
+      <PageHeader
+        title="Budgets"
+        subtitle="Set spending limits and track progress by category"
+        action={
+          <input
+            type="month"
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm"
+          />
+        }
+      />
 
-      {/* Month Selector */}
-      <div style={{ marginBottom: "20px" }}>
-        <label style={{ fontWeight: "600", marginRight: "10px" }}>
-          Select Month:
-        </label>
-        <input
-          type="month"
-          value={selectedMonth}
-          onChange={(e) => setSelectedMonth(e.target.value)}
-        />
-      </div>
-
-      {/* Chart */}
       <SpendingChart progress={progressData} month={selectedMonth} loading={loading} />
 
-      {/* Form */}
       <BudgetForm
         editData={editingBudget}
         clearEdit={() => setEditingBudget(null)}
@@ -81,15 +78,21 @@ export default function Budgets() {
         }}
       />
 
-      {/* Card List */}
-      <div style={{ marginTop: "40px" }}>
-        <BudgetList
-          progress={progressData}
-          loading={loading}
-          onEdit={(item) => setEditingBudget(item)}
-          onDelete={handleDelete}
-        />
-      </div>
+      <BudgetList
+        progress={progressData}
+        loading={loading}
+        onEdit={(item) => setEditingBudget(item)}
+        onDelete={(id) => setDeleteId(id)}
+      />
+
+      <ConfirmModal
+        open={!!deleteId}
+        title="Delete Budget"
+        message="Are you sure you want to delete this budget?"
+        danger
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteId(null)}
+      />
     </div>
   );
 }

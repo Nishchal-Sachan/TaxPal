@@ -1,4 +1,7 @@
+import { useCurrency } from "../../hooks/useCurrency";
+
 export default function BudgetCard({ item, onEdit, onDelete }) {
+  const { format } = useCurrency();
   const limit = Number(item?.limit ?? 0);
   const spent = Number(item?.spent ?? 0);
   const remaining = Number(item?.remaining ?? limit - spent);
@@ -26,10 +29,9 @@ export default function BudgetCard({ item, onEdit, onDelete }) {
   const current = statusConfig[status] || statusConfig.safe;
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md">
-      {/* Header */}
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md">
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-slate-800 capitalize">
+        <h3 className="text-lg font-semibold capitalize text-slate-800">
           {item?.category ?? "Uncategorized"}
         </h3>
 
@@ -39,16 +41,12 @@ export default function BudgetCard({ item, onEdit, onDelete }) {
           >
             {current.label}
           </span>
-
-          {/* Edit */}
           <button
             onClick={() => onEdit?.(item)}
-            className="text-xs font-medium text-blue-600 hover:underline"
+            className="text-xs font-medium text-indigo-600 hover:underline"
           >
             Edit
           </button>
-
-          {/* Delete */}
           <button
             onClick={() => onDelete?.(item._id)}
             className="text-xs font-medium text-red-600 hover:underline"
@@ -58,22 +56,15 @@ export default function BudgetCard({ item, onEdit, onDelete }) {
         </div>
       </div>
 
-      {/* Values */}
       <div className="space-y-2 text-sm">
         <div className="flex justify-between text-slate-600">
           <span>Limit</span>
-          <span className="font-medium text-slate-800">
-            ₹{limit.toLocaleString()}
-          </span>
+          <span className="font-medium text-slate-800">{format(limit)}</span>
         </div>
-
         <div className="flex justify-between text-slate-600">
           <span>Spent</span>
-          <span className="font-medium text-slate-800">
-            ₹{spent.toLocaleString()}
-          </span>
+          <span className="font-medium text-slate-800">{format(spent)}</span>
         </div>
-
         <div className="flex justify-between text-slate-600">
           <span>Remaining</span>
           <span
@@ -81,12 +72,11 @@ export default function BudgetCard({ item, onEdit, onDelete }) {
               remaining < 0 ? "text-red-600" : "text-slate-800"
             }`}
           >
-            ₹{remaining.toLocaleString()}
+            {format(remaining)}
           </span>
         </div>
       </div>
 
-      {/* Progress */}
       <div className="mt-4">
         <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
           <div
@@ -94,14 +84,10 @@ export default function BudgetCard({ item, onEdit, onDelete }) {
             style={{ width: `${Math.min(percent, 100)}%` }}
           />
         </div>
-
-        <p className="mt-1 text-right text-xs text-slate-500">
-          {percent}% used
-        </p>
-
+        <p className="mt-1 text-right text-xs text-slate-500">{percent}% used</p>
         {percent > 100 && (
-          <p className="mt-1 text-right text-xs text-red-600 font-medium">
-            Overspent by ₹{Math.abs(remaining).toLocaleString()}
+          <p className="mt-1 text-right text-xs font-medium text-red-600">
+            Overspent by {format(Math.abs(remaining))}
           </p>
         )}
       </div>

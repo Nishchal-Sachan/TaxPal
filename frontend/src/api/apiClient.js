@@ -1,12 +1,9 @@
-// src/api/apiClient.js
-
 import axios from "axios";
 import { getToken, removeToken } from "../utils/auth";
+import { API_BASE_URL } from "../utils/config";
 
-// Base URL must match backend
-// If backend runs on 5000:
 const apiClient = axios.create({
-  baseURL: "http://localhost:5000/api",
+  baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
@@ -34,11 +31,15 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response) {
-      if (error.response.status === 401) {
-        removeToken();
-        window.location.href = "/login";
-      }
+    const status = error.response?.status;
+    const requestUrl = error.config?.url || "";
+    const isAuthAttempt =
+      requestUrl.includes("/auth/login") ||
+      requestUrl.includes("/auth/register");
+
+    if (status === 401 && !isAuthAttempt && getToken()) {
+      removeToken();
+      window.location.href = "/login";
     }
 
     return Promise.reject(error);

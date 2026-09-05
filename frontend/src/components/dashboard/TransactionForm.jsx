@@ -9,14 +9,16 @@ const TransactionForm = ({ onSuccess }) => {
     amount: "",
     category: "",
     date: new Date().toISOString().split("T")[0],
+    description: "",
+    isTaxDeductible: false,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setFormData((prev) => {
-      const next = { ...prev, [name]: value };
+      const next = { ...prev, [name]: type === "checkbox" ? checked : value };
       if (name === "type") next.category = "";
       return next;
     });
@@ -33,6 +35,8 @@ const TransactionForm = ({ onSuccess }) => {
         amount: parseFloat(formData.amount),
         category: formData.category,
         date: formData.date,
+        description: formData.description,
+        isTaxDeductible: formData.isTaxDeductible,
       });
 
       setFormData({
@@ -40,105 +44,51 @@ const TransactionForm = ({ onSuccess }) => {
         amount: "",
         category: "",
         date: new Date().toISOString().split("T")[0],
+        description: "",
+        isTaxDeductible: false,
       });
 
-      if (onSuccess) onSuccess();
+      onSuccess?.();
     } catch (err) {
-      setError(
-        err.response?.data?.message || "Failed to add transaction"
-      );
+      setError(err.response?.data?.message || "Failed to add transaction");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-slate-800 mb-4">
-        Add Transaction
-      </h2>
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 className="mb-4 text-lg font-semibold text-slate-800">Add Transaction</h2>
 
       {error && (
-        <div className="mb-4 p-3 rounded-lg bg-red-50 text-red-700 text-sm">
+        <div className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Type
-            </label>
-            <select
-              name="type"
-              value={formData.type}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="income">Income</option>
-              <option value="expense">Expense</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Amount
-            </label>
-            <input
-              type="number"
-              name="amount"
-              value={formData.amount}
-              onChange={handleChange}
-              step="0.01"
-              min="0"
-              required
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Category
-            </label>
-            <select
-              name="category"
-              value={formData.category}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">Select a category</option>
-              {(formData.type === "income" ? incomeCategories : expenseCategories).map(
-                (cat) => (
-                  <option key={cat._id} value={cat.name}>
-                    {cat.name}
-                  </option>
-                )
-              )}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Date
-            </label>
-            <input
-              type="date"
-              name="date"
-              value={formData.date}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <select name="type" value={formData.type} onChange={handleChange} className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm">
+            <option value="income">Income</option>
+            <option value="expense">Expense</option>
+          </select>
+          <input type="number" name="amount" value={formData.amount} onChange={handleChange} step="0.01" min="0" required placeholder="Amount" className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm" />
+          <select name="category" value={formData.category} onChange={handleChange} required className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm">
+            <option value="">Select category</option>
+            {(formData.type === "income" ? incomeCategories : expenseCategories).map((cat) => (
+              <option key={cat._id} value={cat.name}>{cat.name}</option>
+            ))}
+          </select>
+          <input type="date" name="date" value={formData.date} onChange={handleChange} required className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm" />
+          <input type="text" name="description" value={formData.description} onChange={handleChange} placeholder="Description (optional)" className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm md:col-span-2" />
         </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
-        >
+        {formData.type === "expense" && (
+          <label className="flex items-center gap-2 text-sm text-slate-600">
+            <input type="checkbox" name="isTaxDeductible" checked={formData.isTaxDeductible} onChange={handleChange} />
+            Tax deductible expense
+          </label>
+        )}
+        <button type="submit" disabled={loading} className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60">
           {loading ? "Adding..." : "Add Transaction"}
         </button>
       </form>

@@ -7,65 +7,63 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
-
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // On app load, check if token exists
   useEffect(() => {
-    const token = getToken();
-
-    if (token) {
-      // We don’t decode token here for simplicity
-      // You can add a /me endpoint later if needed
-      setUser({ authenticated: true }); // eslint-disable-line react-hooks/set-state-in-effect -- initial auth from token
-    }
-
-    setLoading(false);
+    const initAuth = async () => {
+      const token = getToken();
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const response = await apiClient.get("/auth/me");
+        setUser(response.data.data);
+      } catch {
+        removeToken();
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    initAuth();
   }, []);
 
-
-  /**
-   * REGISTER
-   */
   const register = async (formData) => {
     try {
-      await apiClient.post("/auth/register", formData);
-      navigate("/login");
+      const response = await apiClient.post("/auth/register", formData);
+      const { token, user: userData } = response.data.data;
+      setToken(token);
+      setUser(userData);
+      navigate("/dashboard");
     } catch (error) {
       throw new Error(error.response?.data?.message || "Registration failed");
     }
   };
 
-  /**
-   * LOGIN
-   */
   const login = async (formData) => {
     try {
       const response = await apiClient.post("/auth/login", formData);
-
-      const { token, user } = response.data.data;
-
+      const { token, user: userData } = response.data.data;
       setToken(token);
-      setUser(user);
-
+      setUser(userData);
       navigate("/dashboard");
     } catch (error) {
       throw new Error(error.response?.data?.message || "Login failed");
     }
   };
 
-
-
-  /**
-   * LOGOUT
-   */
   const logout = () => {
     removeToken();
     setUser(null);
     navigate("/login");
   };
 
+  const refreshUser = async () => {
+    const response = await apiClient.get("/auth/me");
+    setUser(response.data.data);
+  };
 
   const value = {
     user,
@@ -73,18 +71,13 @@ export const AuthProvider = ({ children }) => {
     register,
     login,
     logout,
+    refreshUser,
     isAuthenticated: !!user,
-  
   };
 
   return (
-    <AuthContext.Provider value={value}>
-      {!loading && children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
   );
 };
 
-// eslint-disable-next-line react-refresh/only-export-components -- useAuth is a hook, not a component
-export const useAuth = () => {
-  return useContext(AuthContext);
-};
+export const useAuth = () => useContext(AuthContext);

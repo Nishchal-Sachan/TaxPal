@@ -29,9 +29,11 @@ const ReportForm = ({ filter, setFilter, onGenerate, loading }) => {
   const isFormValid = () => {
     if (filter.type === 'monthly') {
       return filter.month && filter.year;
-    } else {
+    }
+    if (filter.type === 'quarterly') {
       return filter.quarter && filter.year;
     }
+    return filter.year;
   };
 
   return (
@@ -48,8 +50,9 @@ const ReportForm = ({ filter, setFilter, onGenerate, loading }) => {
             onChange={handleChange}
             className="w-full px-6 py-4 rounded-xl bg-gray-50 border-2 border-transparent focus:border-blue-500 focus:bg-white outline-none transition-all text-gray-700 font-semibold shadow-inner"
           >
-            <option value="monthly">📅 Monthly Report</option>
-            <option value="quarterly">🏢 Quarterly Report</option>
+            <option value="monthly">Monthly Report</option>
+            <option value="quarterly">Quarterly Report</option>
+            <option value="tax-year">Tax Year Summary</option>
           </select>
         </div>
 
@@ -68,7 +71,7 @@ const ReportForm = ({ filter, setFilter, onGenerate, loading }) => {
               ))}
             </select>
           </div>
-        ) : (
+        ) : filter.type === 'quarterly' ? (
           <div className="space-y-3">
             <label className="block text-sm font-bold text-gray-500 uppercase tracking-widest pl-1">Select Quarter</label>
             <select
@@ -83,6 +86,8 @@ const ReportForm = ({ filter, setFilter, onGenerate, loading }) => {
               ))}
             </select>
           </div>
+        ) : (
+          <div className="hidden md:block" />
         )}
 
         <div className="space-y-3">

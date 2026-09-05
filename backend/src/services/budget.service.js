@@ -1,6 +1,6 @@
 const Budget = require("../models/budget.model");
 const Transaction = require("../models/transaction.model");
-const { CATEGORIES } = require("../utils/constants");
+const Category = require("../models/category.model");
 
 /**
  * Create Budget
@@ -15,8 +15,14 @@ exports.createBudget = async (userId, data) => {
     throw error;
   }
 
-  if (!CATEGORIES.includes(category)) {
-    const error = new Error("Invalid category");
+  const validCategory = await Category.findOne({
+    user: userId,
+    name: category,
+    type: "expense",
+  });
+
+  if (!validCategory) {
+    const error = new Error("Invalid expense category");
     error.statusCode = 400;
     throw error;
   }

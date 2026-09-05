@@ -4,22 +4,13 @@ const auth = require("../middlewares/auth.middleware");
 
 const router = express.Router();
 
-// Middleware to protect all report routes
 router.use(auth);
 
-/**
- * @route GET /api/reports/monthly
- */
 router.get("/monthly", reportController.generateMonthlyReport);
-
-/**
- * @route GET /api/reports/quarterly
- */
 router.get("/quarterly", reportController.generateQuarterlyReport);
-
-/**
- * @route GET /api/reports/export
- */
+router.get("/tax-year", reportController.generateTaxYearReport);
+router.get("/history", reportController.getReportHistory);
 router.get("/export", reportController.exportReport);
+router.get("/download/:reportId", reportController.downloadReport);
 
 module.exports = router;

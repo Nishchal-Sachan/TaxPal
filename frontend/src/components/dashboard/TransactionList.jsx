@@ -1,233 +1,202 @@
 import { useState, useEffect, useCallback } from "react";
 import apiClient from "../../api/apiClient";
 import { useCategories } from "../../hooks/useCategories";
+import { useCurrency } from "../../hooks/useCurrency";
+import { useToast } from "../../context/ToastContext";
+import ConfirmModal from "../ui/ConfirmModal";
 
-const TransactionList = ({ refreshTrigger, onTransactionChange, hideTitle }) => {
+const TransactionList = ({
+  refreshTrigger,
+  onTransactionChange,
+  hideTitle,
+  compact = false,
+  transactions: propTransactions,
+}) => {
+  const { format } = useCurrency();
+  const toast = useToast();
   const { incomeCategories, expenseCategories } = useCategories();
   const [transactions, setTransactions] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [pagination, setPagination] = useState(null);
+  const [loading, setLoading] = useState(!compact);
   const [error, setError] = useState(null);
+  const [filters, setFilters] = useState({
+    page: 1,
+    search: "",
+    type: "",
+    category: "",
+  });
   const [editingId, setEditingId] = useState(null);
-  const [editForm, setEditForm] = useState({ amount: "", category: "", date: "" });
-  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [editForm, setEditForm] = useState({ amount: "", category: "", date: "", description: "", isTaxDeductible: false });
+  const [deleteId, setDeleteId] = useState(null);
 
   const fetchTransactions = useCallback(async () => {
+    if (compact && propTransactions) {
+      setTransactions(propTransactions);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
-      const response = await apiClient.get("/transactions");
-      const data = response.data.data;
-      setTransactions(Array.isArray(data) ? data : []);
+      const response = await apiClient.get("/transactions", { params: filters });
+      setTransactions(response.data.data.data || []);
+      setPagination(response.data.data.pagination);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load transactions");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [compact, propTransactions, filters]);
 
   useEffect(() => {
     fetchTransactions();
   }, [refreshTrigger, fetchTransactions]);
 
-  const handleEdit = (transaction) => {
-    setEditingId(transaction._id);
-    setEditForm({
-      amount: String(transaction.amount),
-      category: transaction.category,
-      date: transaction.date
-        ? new Date(transaction.date).toISOString().split("T")[0]
-        : new Date().toISOString().split("T")[0],
-    });
-  };
+  useEffect(() => {
+    if (compact && propTransactions) {
+      setTransactions(propTransactions);
+    }
+  }, [compact, propTransactions]);
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
-    if (!editingId) return;
-
     try {
       await apiClient.put(`/transactions/${editingId}`, {
         amount: parseFloat(editForm.amount),
         category: editForm.category,
         date: editForm.date,
+        description: editForm.description,
+        isTaxDeductible: editForm.isTaxDeductible,
       });
       setEditingId(null);
       fetchTransactions();
-      if (onTransactionChange) onTransactionChange();
+      onTransactionChange?.();
+      toast.success("Transaction updated");
     } catch (err) {
-      console.error("Failed to update transaction", err);
+      toast.error(err.response?.data?.message || "Update failed");
     }
   };
 
-  const handleEditCancel = () => {
-    setEditingId(null);
-  };
-
-  const handleDeleteClick = (id) => {
-    setDeleteConfirmId(id);
-  };
-
-  const handleDeleteConfirm = async (id) => {
+  const handleDelete = async () => {
     try {
-      await apiClient.delete(`/transactions/${id}`);
-      setDeleteConfirmId(null);
+      await apiClient.delete(`/transactions/${deleteId}`);
+      setDeleteId(null);
       fetchTransactions();
-      if (onTransactionChange) onTransactionChange();
+      onTransactionChange?.();
+      toast.success("Transaction deleted");
     } catch (err) {
-      console.error("Failed to delete transaction", err);
+      toast.error(err.response?.data?.message || "Delete failed");
     }
-  };
-
-  const handleDeleteCancel = () => {
-    setDeleteConfirmId(null);
   };
 
   if (loading) {
     return (
-      <div className="transactions-card">
-        {!hideTitle && <h2 className="transactions-title">Transactions</h2>}
-        <p className="transactions-loading">Loading...</p>
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        {!hideTitle && <h2 className="mb-4 text-lg font-semibold">Transactions</h2>}
+        <p className="text-slate-500">Loading...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="transactions-card">
-        {!hideTitle && <h2 className="transactions-title">Transactions</h2>}
-        <div className="transactions-error">{error}</div>
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="text-red-600">{error}</div>
       </div>
     );
   }
 
   return (
-    <div className="transactions-card">
-      {!hideTitle && <h2 className="transactions-title">Transactions</h2>}
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      {!hideTitle && (
+        <h2 className="mb-4 text-lg font-semibold text-slate-800">Transactions</h2>
+      )}
+
+      {!compact && (
+        <div className="mb-4 grid gap-3 sm:grid-cols-4">
+          <input
+            placeholder="Search..."
+            value={filters.search}
+            onChange={(e) => setFilters({ ...filters, search: e.target.value, page: 1 })}
+            className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
+          />
+          <select
+            value={filters.type}
+            onChange={(e) => setFilters({ ...filters, type: e.target.value, page: 1 })}
+            className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
+          >
+            <option value="">All types</option>
+            <option value="income">Income</option>
+            <option value="expense">Expense</option>
+          </select>
+          <button
+            onClick={() => fetchTransactions()}
+            className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200"
+          >
+            Apply Filters
+          </button>
+        </div>
+      )}
 
       {transactions.length === 0 ? (
-        <div className="text-slate-600 py-8 text-center">
-          No transactions yet. Add your first transaction above.
-        </div>
+        <p className="py-8 text-center text-slate-500">No transactions yet.</p>
       ) : (
         <div className="space-y-2">
           {transactions.map((transaction) => (
             <div
               key={transaction._id}
-              className="flex items-center justify-between p-4 rounded-lg border border-slate-200 hover:bg-slate-50"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-100 p-4 hover:bg-slate-50"
             >
               {editingId === transaction._id ? (
-                <form
-                  onSubmit={handleEditSubmit}
-                  className="flex-1 flex flex-wrap items-center gap-2"
-                >
-                  <input
-                    type="number"
-                    value={editForm.amount}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, amount: e.target.value })
-                    }
-                    step="0.01"
-                    min="0"
-                    required
-                    className="w-24 px-2 py-1 border rounded"
-                  />
-                  <select
-                    value={editForm.category}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, category: e.target.value })
-                    }
-                    required
-                    className="w-32 px-2 py-1 border rounded"
-                  >
-                    <option value="">Select</option>
-                    {(() => {
-                      const type = transactions.find((t) => t._id === editingId)?.type;
-                      const options = type === "income" ? incomeCategories : expenseCategories;
-                      const names = new Set(options.map((c) => c.name));
-                      const list = [...options];
-                      if (editForm.category && !names.has(editForm.category)) {
-                        list.push({ _id: "legacy", name: editForm.category });
-                      }
-                      return list.map((cat) => (
-                        <option key={cat._id} value={cat.name}>
-                          {cat.name}
-                        </option>
-                      ));
-                    })()}
+                <form onSubmit={handleEditSubmit} className="flex flex-1 flex-wrap gap-2">
+                  <input type="number" value={editForm.amount} onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })} className="w-24 rounded border px-2 py-1 text-sm" required />
+                  <select value={editForm.category} onChange={(e) => setEditForm({ ...editForm, category: e.target.value })} className="rounded border px-2 py-1 text-sm" required>
+                    {(transaction.type === "income" ? incomeCategories : expenseCategories).map((c) => (
+                      <option key={c._id} value={c.name}>{c.name}</option>
+                    ))}
                   </select>
-                  <input
-                    type="date"
-                    value={editForm.date}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, date: e.target.value })
-                    }
-                    required
-                    className="px-2 py-1 border rounded"
-                  />
-                  <button
-                    type="submit"
-                    className="px-2 py-1 bg-blue-600 text-white rounded text-sm"
-                  >
-                    Save
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleEditCancel}
-                    className="px-2 py-1 bg-slate-300 rounded text-sm"
-                  >
-                    Cancel
-                  </button>
+                  <input type="date" value={editForm.date} onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} className="rounded border px-2 py-1 text-sm" required />
+                  <button type="submit" className="rounded bg-indigo-600 px-3 py-1 text-sm text-white">Save</button>
+                  <button type="button" onClick={() => setEditingId(null)} className="rounded bg-slate-200 px-3 py-1 text-sm">Cancel</button>
                 </form>
               ) : (
                 <>
-                  <div className="flex items-center gap-4">
-                    <span
-                      className={`px-2 py-0.5 rounded text-sm font-medium ${
-                        transaction.type === "income"
-                          ? "bg-emerald-100 text-emerald-800"
-                          : "bg-rose-100 text-rose-800"
-                      }`}
-                    >
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${transaction.type === "income" ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}`}>
                       {transaction.type}
                     </span>
-                    <span className="text-slate-700">{transaction.category}</span>
-                    <span className="text-slate-500 text-sm">
-                      {transaction.date
-                        ? new Date(transaction.date).toLocaleDateString()
-                        : "-"}
+                    <span className="font-medium text-slate-700">{transaction.category}</span>
+                    {transaction.isTaxDeductible && (
+                      <span className="rounded bg-violet-100 px-2 py-0.5 text-xs text-violet-700">Tax deductible</span>
+                    )}
+                    <span className="text-sm text-slate-500">
+                      {new Date(transaction.date).toLocaleDateString()}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-slate-800">
-                      ${Number(transaction.amount).toFixed(2)}
-                    </span>
-                    <button
-                      onClick={() => handleEdit(transaction)}
-                      className="px-2 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded"
-                    >
-                      Edit
-                    </button>
-                    {deleteConfirmId === transaction._id ? (
-                      <span className="flex gap-1">
+                    <span className="font-semibold text-slate-900">{format(transaction.amount)}</span>
+                    {!compact && (
+                      <>
                         <button
-                          onClick={() => handleDeleteConfirm(transaction._id)}
-                          className="px-2 py-1 text-sm bg-red-600 text-white rounded"
+                          onClick={() => {
+                            setEditingId(transaction._id);
+                            setEditForm({
+                              amount: String(transaction.amount),
+                              category: transaction.category,
+                              date: new Date(transaction.date).toISOString().split("T")[0],
+                              description: transaction.description || "",
+                              isTaxDeductible: transaction.isTaxDeductible || false,
+                            });
+                          }}
+                          className="text-sm text-indigo-600 hover:underline"
                         >
-                          Confirm
+                          Edit
                         </button>
-                        <button
-                          onClick={handleDeleteCancel}
-                          className="px-2 py-1 text-sm bg-slate-300 rounded"
-                        >
-                          Cancel
+                        <button onClick={() => setDeleteId(transaction._id)} className="text-sm text-red-600 hover:underline">
+                          Delete
                         </button>
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => handleDeleteClick(transaction._id)}
-                        className="px-2 py-1 text-sm text-red-600 hover:bg-red-50 rounded"
-                      >
-                        Delete
-                      </button>
+                      </>
                     )}
                   </div>
                 </>
@@ -236,6 +205,37 @@ const TransactionList = ({ refreshTrigger, onTransactionChange, hideTitle }) => 
           ))}
         </div>
       )}
+
+      {!compact && pagination && pagination.pages > 1 && (
+        <div className="mt-4 flex items-center justify-between">
+          <button
+            disabled={filters.page <= 1}
+            onClick={() => setFilters({ ...filters, page: filters.page - 1 })}
+            className="rounded-lg border px-3 py-1 text-sm disabled:opacity-40"
+          >
+            Previous
+          </button>
+          <span className="text-sm text-slate-500">
+            Page {pagination.page} of {pagination.pages}
+          </span>
+          <button
+            disabled={filters.page >= pagination.pages}
+            onClick={() => setFilters({ ...filters, page: filters.page + 1 })}
+            className="rounded-lg border px-3 py-1 text-sm disabled:opacity-40"
+          >
+            Next
+          </button>
+        </div>
+      )}
+
+      <ConfirmModal
+        open={!!deleteId}
+        title="Delete Transaction"
+        message="Are you sure you want to delete this transaction?"
+        danger
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteId(null)}
+      />
     </div>
   );
 };

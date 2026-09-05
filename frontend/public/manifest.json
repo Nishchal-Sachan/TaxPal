@@ -1,0 +1,10 @@
+{
+  "name": "TaxPal",
+  "short_name": "TaxPal",
+  "description": "Personal finance and tax planning",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#4f46e5",
+  "icons": []
+}
